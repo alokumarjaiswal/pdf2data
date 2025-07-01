@@ -1,0 +1,204 @@
+/* Minimal Professional App Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background-color: #000000;
+  color: #ffffff;
+  line-height: 1.5;
+  font-size: 16px;
+  overflow-x: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove default button and input styles */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Minimal scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #606060;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #808080;
+}
+
+/* Focus states */
+*:focus-visible {
+  outline: 2px solid #808080;
+  outline-offset: 2px;
+}
+
+/* Selection styling */
+::selection {
+  background-color: #606060;
+  color: #ffffff;
+}
+
+/* Smooth transitions */
+* {
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+}
+
+/* Link styling */
+a {
+  color: #e8e8e8;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+/* Shiny Text Effects */
+.shiny-text {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 25%, #c0c0c0 50%, #e8e8e8 75%, #ffffff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: shiny-shimmer 2s ease-in-out infinite;
+}
+
+.shiny-text-strong {
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 0 18px rgba(255, 255, 255, 0.4), 0 0 24px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 15%, #e8e8e8 30%, #d4d4d4 45%, #e8e8e8 60%, #f8f8f8 85%, #ffffff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 400% 400%;
+  animation: shiny-shimmer-strong 3s ease-in-out infinite;
+}
+
+@keyframes shiny-shimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes shiny-shimmer-strong {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 25% 25%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 75% 75%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+  .shiny-text {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+  
+  .shiny-text-strong {
+    color: #ffffff;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Custom scrollbar for seamless table scrolling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #808080;
+  border-radius: 3px;
+  opacity: 0.6;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+  opacity: 0.8;
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #808080 transparent;
+}
+
+/* Smooth scrolling behavior */
+.custom-scrollbar {
+  scroll-behavior: smooth;
+}
+
+/* PDF iframe seamless integration */
+iframe[title="PDF Viewer"] {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove any white backgrounds from PDF viewer */
+iframe[title="PDF Viewer"]::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+iframe[title="PDF Viewer"]::-webkit-scrollbar-thumb {
+  background: #808080;
+  border-radius: 3px;
+}
+
+iframe[title="PDF Viewer"]::-webkit-scrollbar-track {
+  background: transparent;
+}

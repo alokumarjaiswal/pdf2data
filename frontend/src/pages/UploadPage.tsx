@@ -1,0 +1,229 @@
+import { useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import { commonStyles } from "../theme";
+
+export default function UploadPage() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [fileId, setFileId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const result = await response.json();
+      const uploadedFileId = result.file_id;
+      
+      // Create URL for PDF display
+      const fileUrl = URL.createObjectURL(file);
+      setUploadedFileUrl(fileUrl);
+      setFileId(uploadedFileId);
+      
+    } catch (err) {
+      setError("Failed to upload PDF. Please try again.");
+      console.error(err);
+      setSelectedFile(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      // Only set dragActive to false if we're leaving the main container
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+        setDragActive(false);
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type === "application/pdf") {
+        setSelectedFile(file);
+        setError(null);
+        handleUpload(file);
+      } else {
+        setError("Please select a PDF file.");
+      }
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type === "application/pdf") {
+        setSelectedFile(file);
+        setError(null);
+        handleUpload(file);
+      } else {
+        setError("Please select a PDF file.");
+      }
+    }
+  };
+
+  const handleNewUpload = () => {
+    setSelectedFile(null);
+    setUploadedFileUrl(null);
+    setFileId(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleContinueToExtract = () => {
+    if (fileId) {
+      navigate(`/extract?file_id=${fileId}`);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <Layout
+      rightNavItems={uploadedFileUrl ? (
+        <>
+          <button
+            onClick={handleNewUpload}
+            className={`${commonStyles.navLink} ${commonStyles.navLinkInactive}`}
+          >
+            Upload New
+          </button>
+          <button
+            onClick={handleContinueToExtract}
+            className={`${commonStyles.navLink} ${commonStyles.navLinkActive}`}
+          >
+            Continue to Extract
+          </button>
+        </>
+      ) : undefined}
+    >
+      {uploadedFileUrl ? (
+        // PDF Viewer Mode
+        <div className="h-full flex flex-col">
+          {/* Navigation Spacer */}
+          <div className="h-16 flex-shrink-0"></div>
+          
+          {/* Expanded PDF Viewer */}
+          <div className="flex-1 w-full">
+            <iframe
+              src={`${uploadedFileUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+              className="w-full h-full border-0"
+              title={selectedFile?.name || "PDF Viewer"}
+              name={selectedFile?.name || "PDF Document"}
+              style={{
+                background: 'transparent',
+                filter: 'invert(0) contrast(1.05) brightness(1)'
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        // Upload Mode
+        <div className="h-full flex items-center justify-center relative">
+          {/* Large Drop Zone - Full Screen */}
+          <div
+            className={`absolute inset-0 transition-all duration-200 ${
+              dragActive 
+                ? 'bg-grey-900 bg-opacity-30' 
+                : 'hover:bg-grey-900 hover:bg-opacity-5'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileSelect}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+          </div>
+
+          {/* Visual Upload Interface */}
+          <div className="w-full max-w-2xl z-20 pointer-events-none">
+            <div className="p-12 text-center">
+              <div className="space-y-4">
+                {!uploading ? (
+                  <>
+                    <div className="w-16 h-16 mx-auto bg-grey-800 border border-grey-700 flex items-center justify-center">
+                      <span className="text-grey-300 text-xs font-mono shiny-text">PDF</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-grey-100 mb-2 shiny-text-strong">
+                        Drop PDF here or click to browse
+                      </h3>
+                      <p className="text-grey-400 shiny-text">
+                        Supports PDF files up to 50MB
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 mx-auto bg-grey-700 border border-grey-600 flex items-center justify-center">
+                      <div className="animate-spin w-8 h-8 border border-grey-500 border-t-grey-200"></div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-grey-100 mb-1 shiny-text-strong">
+                        Uploading...
+                      </h3>
+                      <p className="text-grey-400 shiny-text">
+                        Processing your PDF
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 p-4 bg-black bg-opacity-50 text-grey-300 shiny-text text-center pointer-events-auto">
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Layout>
+  );
+}

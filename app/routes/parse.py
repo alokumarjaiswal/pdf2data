@@ -3,6 +3,7 @@ import os
 import json
 from app.parsers.parser_registry import parser_registry
 from app.db.mongo import parsed_collection
+from datetime import datetime
 
 router = APIRouter()
 
@@ -11,13 +12,24 @@ PARSED_DIR = "data/parsed_output"
 os.makedirs(PARSED_DIR, exist_ok=True)
 
 @router.post("/parse")
-async def parse_text(file_id: str = Form(...), mode: str = Form(...), parser: str = Form(...)):
+async def parse_text(file_id: str = Form(...), parser: str = Form(...)):
     if parser not in parser_registry:
         raise HTTPException(status_code=400, detail="Invalid parser selected.")
 
-    extract_path = os.path.join(EXTRACT_DIR, f"extracted_{mode}_{file_id}.txt")
-    if not os.path.exists(extract_path):
-        raise HTTPException(status_code=404, detail="Extracted file not found.")
+    # Try to find extracted file - check all possible modes
+    possible_modes = ["digital", "ocr", "auto"]
+    extract_path = None
+    used_mode = None
+    
+    for mode in possible_modes:
+        test_path = os.path.join(EXTRACT_DIR, f"extracted_{mode}_{file_id}.txt")
+        if os.path.exists(test_path):
+            extract_path = test_path
+            used_mode = mode
+            break
+    
+    if not extract_path:
+        raise HTTPException(status_code=404, detail="No extracted file found for this document.")
 
     with open(extract_path, "r", encoding="utf-8") as f:
         extracted_text = f.read()
@@ -49,7 +61,8 @@ async def parse_text(file_id: str = Form(...), mode: str = Form(...), parser: st
         "_id": file_id,
         "parser": parser,
         "original_filename": original_filename,
-        "tables": parsed_output
+        "tables": parsed_output,
+        "uploaded_at": datetime.utcnow().isoformat(),
     },
     upsert=True
     )
@@ -57,6 +70,7 @@ async def parse_text(file_id: str = Form(...), mode: str = Form(...), parser: st
     return {
         "file_id": file_id,
         "parser_used": parser,
+        "extraction_mode_used": used_mode,
         "message": "Parsing complete and stored in DB",
         "saved_as": os.path.basename(parsed_path)
     }
