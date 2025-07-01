@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ original_filename or "Daybook Preview" }}</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 960px;
+      margin: 2em auto;
+      padding: 1em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    h2, h3, h4 {
+      margin-top: 1.5em;
+    }
+    .section {
+      border-top: 2px solid #eee;
+      padding-top: 1.5em;
+      margin-top: 2em;
+    }
+    .meta {
+      font-size: 0.9em;
+      color: #555;
+    }
+    .button-link {
+      display: inline-block;
+      margin-top: 1em;
+      padding: 0.5em 1em;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      text-decoration: none;
+      color: black;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Parsed Preview: {{ original_filename }}</h2>
+  <p class="meta">File ID: {{ file_id }}</p>
+  <a href="/api/data/{{ file_id }}?pretty=1" target="_blank" class="button-link">View Raw JSON</a>
+
+
+  {% for table in data %}
+    <div class="section">
+      <h3>{{ table.society_name or "Unnamed Society" }}</h3>
+      <p><strong>Village:</strong> {{ table.village_name or "N/A" }}</p>
+      <p><strong>Date:</strong> {{ table.date or "N/A" }}</p>
+
+      <h4>Entries</h4>
+      <table>
+        <tr>
+          <th>Account Name</th>
+          <th>Account Number</th>
+          <th>Amount</th>
+          <th>Total Amount</th>
+        </tr>
+        {% for entry in table.entries or [] %}
+        <tr>
+          <td>{{ entry.account_name }}</td>
+          <td>{{ entry.account_number or '-' }}</td>
+          <td>{{ entry.amount or '-' }}</td>
+          <td>{{ entry.total_amount or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      {% if table.totals %}
+      <h4>Totals</h4>
+      <table>
+        <tr><th>Key</th><th>Value</th></tr>
+        {% for key, value in table.totals.items() %}
+        <tr>
+          <td>{{ key.replace('_', ' ').title() }}</td>
+          <td>{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+
+      <p><strong>Amount in Words:</strong> {{ table.amount_in_words or "N/A" }}</p>
+    </div>
+  {% endfor %}
+
+</body>
+</html>
