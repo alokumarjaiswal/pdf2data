@@ -157,10 +157,10 @@ export default function UploadPage() {
         </div>
       ) : (
         // Upload Mode
-        <div className="h-full flex items-center justify-center relative">
-          {/* Large Drop Zone - Full Screen */}
+        <div className="h-full flex items-center justify-center relative pt-16">
+          {/* Contained Drop Zone - Main Content Area Only */}
           <div
-            className={`absolute inset-0 transition-all duration-200 ${
+            className={`absolute inset-x-6 top-20 bottom-6 transition-all duration-200 ${
               dragActive 
                 ? 'bg-grey-900 bg-opacity-30' 
                 : 'hover:bg-grey-900 hover:bg-opacity-5'
