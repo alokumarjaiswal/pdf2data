@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import StreamingResponse
-from app.extract.extractor import run_extraction
-import os
+from app.extract.extractor import run_extraction_from_content
+from app.db.mongo import DocumentManager, ExtractionManager, LogManager
+from app.utils.temp_file import safe_temp_file
+from app.utils.memory_monitor import MemoryMonitor, force_cleanup
 import json
 import asyncio
 from queue import Queue
@@ -9,24 +11,62 @@ import threading
 
 router = APIRouter()
 
-UPLOAD_DIR = "data/uploaded_pdfs"
-EXTRACT_DIR = "data/extracted_pages"
-os.makedirs(EXTRACT_DIR, exist_ok=True)
-
 VALID_MODES = ["digital", "ocr", "auto"]
 
 @router.post("/extract")
 async def extract_text(file_id: str = Form(...), mode: str = Form(...)):
+    """Extract text from PDF stored in database"""
     if mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="Invalid extraction mode")
 
-    pdf_path = os.path.join(UPLOAD_DIR, f"original_{file_id}.pdf")
-    if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail="Original PDF not found")
+    # Get PDF content from database
+    pdf_content = await DocumentManager.get_pdf_content(file_id)
+    if not pdf_content:
+        raise HTTPException(status_code=404, detail="Original PDF not found in database")
 
     try:
-        result = run_extraction(pdf_path, file_id, mode)
+        # Monitor memory usage during extraction
+        with MemoryMonitor(f"extraction_{mode}_{file_id}"):
+            # Use safe temporary file handling with automatic cleanup
+            with safe_temp_file(suffix='.pdf', prefix=f'extract_{file_id}_', content=pdf_content) as temp_pdf_path:
+                # Run extraction
+                result = run_extraction_from_content(temp_pdf_path, file_id, mode)
+                
+                # Store extracted text in database
+                extraction_record = await ExtractionManager.store_extraction(
+                    file_id=file_id,
+                    mode=mode,
+                    extracted_text=result["extracted_text"],
+                    num_pages=result["num_pages"],
+                    num_chars=result["num_chars"],
+                    method=result["method"]
+                )
+                
+                # Log the extraction
+                await LogManager.store_log(
+                    file_id=file_id,
+                    process_type="extraction",
+                    log_content=f"Extraction completed successfully using {mode} mode",
+                    metadata={
+                        "mode": mode,
+                        "method": result["method"],
+                        "pages": result["num_pages"],
+                        "chars": result["num_chars"]
+                    }
+                )
+            # Temporary file is automatically cleaned up when exiting the context
+        
+        # Force cleanup after extraction
+        force_cleanup()
+
     except Exception as e:
+        # Log the error
+        await LogManager.store_log(
+            file_id=file_id,
+            process_type="extraction",
+            log_content=f"Extraction failed: {str(e)}",
+            metadata={"error": True, "mode": mode}
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
     return {
@@ -34,20 +74,22 @@ async def extract_text(file_id: str = Form(...), mode: str = Form(...)):
         "mode": result["method"],
         "pages": result["num_pages"],
         "chars": result["num_chars"],
-        "saved_as": os.path.basename(result["output_path"]),
-        "message": "Extraction complete"
+        "saved_as": f"extracted_{mode}_{file_id}.txt",  # Keep for API compatibility
+        "message": "Extraction complete and stored in database"
     }
 
 @router.post("/extract/stream")
 async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
+    """Extract text with real-time streaming progress"""
     if mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="Invalid extraction mode")
 
-    pdf_path = os.path.join(UPLOAD_DIR, f"original_{file_id}.pdf")
-    if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail="Original PDF not found")
+    # Get PDF content from database
+    pdf_content = await DocumentManager.get_pdf_content(file_id)
+    if not pdf_content:
+        raise HTTPException(status_code=404, detail="Original PDF not found in database")
 
-    # Create a queue for log messages
+    # Create queues for log messages and results
     log_queue = Queue()
     result_queue = Queue()
     
@@ -56,21 +98,31 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
     
     def run_extraction_thread():
         try:
-            result = run_extraction(pdf_path, file_id, mode, log_callback=log_callback)
-            result_queue.put(("success", result))
+            # Monitor memory usage during streaming extraction
+            with MemoryMonitor(f"extraction_stream_{mode}_{file_id}"):
+                # Use safe temporary file handling with automatic cleanup
+                with safe_temp_file(suffix='.pdf', prefix=f'extract_stream_{file_id}_', content=pdf_content) as temp_pdf_path:
+                    result = run_extraction_from_content(temp_pdf_path, file_id, mode, log_callback=log_callback)
+                    result_queue.put(("success", result))
+                # Temporary file is automatically cleaned up when exiting the context
+            
+            # Force cleanup after extraction
+            force_cleanup()
+                
         except Exception as e:
             result_queue.put(("error", str(e)))
         finally:
-            log_queue.put("__DONE__")  # Signal completion
+            log_queue.put("__DONE__")
     
     # Start extraction in a separate thread
     extraction_thread = threading.Thread(target=run_extraction_thread)
     extraction_thread.start()
     
     async def event_stream():
+        log_messages = []  # Collect logs for database storage
+        
         while True:
             try:
-                # Check for log messages
                 if not log_queue.empty():
                     message = log_queue.get_nowait()
                     if message == "__DONE__":
@@ -78,14 +130,46 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
                         if not result_queue.empty():
                             result_type, result_data = result_queue.get_nowait()
                             if result_type == "success":
+                                # Store extracted text in database
+                                await ExtractionManager.store_extraction(
+                                    file_id=file_id,
+                                    mode=mode,
+                                    extracted_text=result_data["extracted_text"],
+                                    num_pages=result_data["num_pages"],
+                                    num_chars=result_data["num_chars"],
+                                    method=result_data["method"]
+                                )
+                                
+                                # Store all logs in database
+                                await LogManager.store_log(
+                                    file_id=file_id,
+                                    process_type="extraction",
+                                    log_content="\n".join(log_messages),
+                                    metadata={
+                                        "mode": mode,
+                                        "method": result_data["method"],
+                                        "pages": result_data["num_pages"],
+                                        "chars": result_data["num_chars"],
+                                        "streaming": True
+                                    }
+                                )
+                                
                                 yield f"data: {json.dumps({'type': 'success', 'data': result_data})}\n\n"
                             else:
+                                # Store error logs
+                                await LogManager.store_log(
+                                    file_id=file_id,
+                                    process_type="extraction",
+                                    log_content=f"Extraction failed: {result_data}",
+                                    metadata={"error": True, "mode": mode, "streaming": True}
+                                )
                                 yield f"data: {json.dumps({'type': 'error', 'message': result_data})}\n\n"
                         break
                     else:
+                        log_messages.append(message)
                         yield f"data: {json.dumps({'type': 'log', 'message': message})}\n\n"
                 
-                await asyncio.sleep(0.1)  # Small delay to prevent busy waiting
+                await asyncio.sleep(0.1)
                 
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"

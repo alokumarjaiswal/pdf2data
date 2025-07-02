@@ -1,11 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import upload, extract, parse, api
+from app.db.mongo import init_database
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="PDF2Data API",
-    description="PDF extraction and parsing system with React frontend",
-    version="1.0.0",
+    description="PDF extraction and parsing system with React frontend - Database-First Architecture",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -24,3 +30,40 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database indexes and setup on application startup"""
+    try:
+        await init_database()
+        logger.info("✅ Database initialized successfully - All collections and indexes ready")
+        logger.info("🗄️  Database-first architecture is now active - No filesystem dependencies")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {str(e)}")
+        raise
+
+@app.get("/")
+async def root():
+    return {
+        "message": "PDF2Data API - Database-First Architecture",
+        "version": "2.0.0",
+        "features": [
+            "PDF upload to GridFS",
+            "Database-stored extractions", 
+            "Comprehensive logging",
+            "Processing stage tracking",
+            "API statistics",
+            "No filesystem dependencies"
+        ],
+        "endpoints": {
+            "upload": "/upload",
+            "extract": "/extract",
+            "extract_stream": "/extract/stream", 
+            "parse": "/parse",
+            "list": "/api/list",
+            "data": "/api/data/{file_id}",
+            "delete": "/api/delete/{file_id}",
+            "logs": "/api/logs/{file_id}",
+            "stats": "/api/stats"
+        }
+    }

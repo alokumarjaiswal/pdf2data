@@ -1,4 +1,4 @@
-import { PreviewComponentProps } from './PreviewRegistry';
+import { PreviewComponentProps, BaseParsedData } from './PreviewRegistry';
 
 // Utility function to safely format numbers
 const formatAmount = (value: number | null | undefined): string => {
@@ -24,14 +24,14 @@ interface DaybookTable {
   amount_in_words?: string;
 }
 
-interface DaybookData {
+interface DaybookData extends BaseParsedData {
   tables: DaybookTable[];
   [key: string]: any;
 }
 
 export default function DaybookPreview({ data, originalFilename, fileId }: PreviewComponentProps) {
   // Extract daybook-specific data from the parsed data
-  const daybookData = data as DaybookData;
+  const daybookData = data as unknown as DaybookData;
   const tables = daybookData.tables || [];
   
   return (

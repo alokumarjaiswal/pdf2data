@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { commonStyles } from "../theme";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -13,15 +14,32 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  // Cleanup blob URL when component unmounts or when uploadedFileUrl changes
+  useEffect(() => {
+    return () => {
+      if (uploadedFileUrl) {
+        URL.revokeObjectURL(uploadedFileUrl);
+      }
+    };
+  }, [uploadedFileUrl]);
+
   const handleUpload = async (file: File) => {
     setUploading(true);
     setError(null);
+
+    // File size validation (50MB limit)
+    const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSizeBytes) {
+      setError(`File too large. Maximum size is 50MB. Your file is ${formatFileSize(file.size)}.`);
+      setUploading(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/upload", {
+      const response = await fetch(API_ENDPOINTS.upload, {
         method: "POST",
         body: formData,
       });
@@ -30,6 +48,11 @@ export default function UploadPage() {
 
       const result = await response.json();
       const uploadedFileId = result.file_id;
+      
+      // Clean up any existing blob URL before creating a new one
+      if (uploadedFileUrl) {
+        URL.revokeObjectURL(uploadedFileUrl);
+      }
       
       // Create URL for PDF display
       const fileUrl = URL.createObjectURL(file);
@@ -93,6 +116,11 @@ export default function UploadPage() {
   };
 
   const handleNewUpload = () => {
+    // Clean up the previous blob URL before setting new values
+    if (uploadedFileUrl) {
+      URL.revokeObjectURL(uploadedFileUrl);
+    }
+    
     setSelectedFile(null);
     setUploadedFileUrl(null);
     setFileId(null);

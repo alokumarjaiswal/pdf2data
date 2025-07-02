@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { API_ENDPOINTS } from "../config/api";
 
 type ParsedEntry = {
   _id: string;
@@ -18,7 +19,7 @@ export default function ListPage() {
   const fetchList = async () => {
     try {
       setError(null);
-      const res = await fetch("http://127.0.0.1:8000/api/list");
+      const res = await fetch(API_ENDPOINTS.list);
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
@@ -37,7 +38,7 @@ export default function ListPage() {
     setDeleteConfirm(null);
     
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/delete/${fileId}`, {
+      const res = await fetch(API_ENDPOINTS.delete(fileId), {
         method: "DELETE",
       });
       
@@ -162,7 +163,7 @@ export default function ListPage() {
                     view
                   </a>
                   <a
-                    href={`http://127.0.0.1:8000/api/data/${entry._id}?pretty=1`}
+                    href={API_ENDPOINTS.dataWithPretty(entry._id)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-grey-500 hover:text-grey-300 transition-colors"

@@ -1,6 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { commonStyles } from "../theme";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function ExtractPage() {
   const [mode, setMode] = useState("digital");
@@ -114,7 +115,7 @@ export default function ExtractPage() {
       formData.append("mode", mode);
 
       // Use fetch to start the streaming extraction
-      const response = await fetch("http://127.0.0.1:8000/extract/stream", {
+      const response = await fetch(API_ENDPOINTS.extractStream, {
         method: "POST",
         body: formData,
         signal: abortControllerRef.current.signal,

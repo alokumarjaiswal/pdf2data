@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPreviewComponent, hasCustomPreview, BaseParsedData } from "../components/preview/PreviewRegistry";
 import Layout from "../components/Layout";
+import { API_ENDPOINTS } from "../config/api";
 
 // Use the BaseParsedData interface from registry
 type ParsedData = BaseParsedData;
@@ -22,7 +23,7 @@ export default function PreviewPage() {
     const fetchData = async () => {
       try {
         setError(null);
-        const res = await fetch(`http://127.0.0.1:8000/api/data/${fileId}`);
+        const res = await fetch(API_ENDPOINTS.data(fileId));
         
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
@@ -92,7 +93,7 @@ export default function PreviewPage() {
       subtitle={`Parsed with ${data.parser} • ${hasCustomPreview(data.parser) ? 'Custom Preview' : 'JSON Preview'}`}
       rightNavItems={
         <a
-          href={`http://127.0.0.1:8000/api/data/${data.file_id}?pretty=1`}
+          href={API_ENDPOINTS.dataWithPretty(data.file_id)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"

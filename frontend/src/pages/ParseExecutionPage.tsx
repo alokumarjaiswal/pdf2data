@@ -1,5 +1,6 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function ParseExecutionPage() {
   const [searchParams] = useSearchParams();
@@ -68,7 +69,7 @@ export default function ParseExecutionPage() {
     try {
       addLog("Sending parsing request to server...");
       
-      const res = await fetch("http://127.0.0.1:8000/parse", {
+      const res = await fetch(API_ENDPOINTS.parse, {
         method: "POST",
         body: formData,
       });
