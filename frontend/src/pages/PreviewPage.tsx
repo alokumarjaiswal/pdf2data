@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPreviewComponent, hasCustomPreview, BaseParsedData } from "../components/preview/PreviewRegistry";
-import Layout from "../components/Layout";
-import { commonStyles } from "../theme";
 
 // Use the BaseParsedData interface from registry
 type ParsedData = BaseParsedData;
@@ -44,75 +42,85 @@ export default function PreviewPage() {
 
   if (loading) {
     return (
-      <Layout title="Loading Preview" subtitle="Please wait while we load your document data">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <div className="text-lg text-gray-600">Loading preview...</div>
-          </div>
+      <div className="min-h-screen bg-black text-grey-100 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border border-grey-500 border-t-grey-200 rounded-full mx-auto mb-4"></div>
+          <div className="text-grey-300 font-mono shiny-text">Loading preview...</div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Layout title="Preview Error" subtitle="Unable to load document preview">
-        <div className="max-w-2xl mx-auto">
-          <div className={commonStyles.alert.error}>
-            <div className="flex items-center">
-              <span className="text-red-600 mr-2">⚠️</span>
-              <div>
-                <h3 className="font-bold">Error loading preview</h3>
-                <p className="text-sm mt-1">{error}</p>
-              </div>
-            </div>
+      <div className="min-h-screen bg-black text-grey-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl text-center">
+          <div className="p-6 bg-grey-900 border border-grey-800">
+            <p className="text-grey-400 font-mono shiny-text mb-2">Error loading preview</p>
+            <p className="text-grey-500 text-sm font-mono">{error}</p>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!data) {
     return (
-      <Layout title="No Data" subtitle="No document data available">
-        <div className="max-w-2xl mx-auto">
-          <div className={`${commonStyles.card} text-center py-12`}>
-            <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <span className="text-gray-400 text-2xl">📄</span>
-            </div>
-            <h3 className={`${commonStyles.heading.h3} mb-2`}>No Data Available</h3>
-            <p className="text-gray-500">The requested document data could not be found.</p>
+      <div className="min-h-screen bg-black text-grey-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl text-center">
+          <div className="p-6 bg-grey-900 border border-grey-800">
+            <p className="text-grey-400 font-mono shiny-text">No data available</p>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   // Use the preview registry to get the appropriate component
   const PreviewComponent = getPreviewComponent(data.parser);
-  const hasCustomView = hasCustomPreview(data.parser);
 
   return (
-    <>
-      {!hasCustomView && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-          <div className="flex items-center">
-            <span className="text-yellow-600 mr-2">ℹ️</span>
-            <div>
-              <p className="text-sm text-yellow-700">
-                <strong>Note:</strong> No custom preview available for "{data.parser}" parser. 
-                Showing generic JSON view.
-              </p>
-            </div>
+    <div className="min-h-screen bg-black text-grey-100 p-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* Navigation */}
+        <div className="flex justify-between items-center border-b border-grey-800 pb-4">
+          <div className="flex items-center space-x-6">
+            <a
+              href="/"
+              className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"
+            >
+              ← Upload
+            </a>
+            <a
+              href="/list"
+              className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"
+            >
+              Documents
+            </a>
           </div>
+          <a
+            href={`http://127.0.0.1:8000/api/data/${data.file_id}?pretty=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"
+          >
+            view raw json →
+          </a>
         </div>
-      )}
-      <PreviewComponent
-        data={data}
-        originalFilename={data.original_filename}
-        fileId={data.file_id}
-      />
-    </>
+
+        {/* File Info */}
+        <div className="text-grey-300 font-mono text-sm shiny-text mb-4">
+          {data.original_filename}
+        </div>
+
+        {/* Preview Component */}
+        <PreviewComponent
+          data={data}
+          originalFilename={data.original_filename}
+          fileId={data.file_id}
+        />
+      </div>
+    </div>
   );
 }

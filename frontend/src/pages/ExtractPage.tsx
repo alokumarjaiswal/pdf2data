@@ -12,6 +12,8 @@ export default function ExtractPage() {
   const navigate = useNavigate();
   const terminalRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isResetRef = useRef<boolean>(false);
 
   const fileId = searchParams.get("file_id");
 
@@ -32,16 +34,22 @@ export default function ExtractPage() {
     }
   }, [logs]);
 
-  // Clean up EventSource on unmount
+  // Clean up EventSource and AbortController on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
   const addLog = (message: string, isCommand: boolean = false) => {
+    // Don't add logs if terminal has been reset
+    if (isResetRef.current) return;
+    
     const timestamp = new Date().toLocaleString('en-US', { 
       hour12: false,
       hour: '2-digit',
@@ -56,9 +64,34 @@ export default function ExtractPage() {
     }
   };
 
+  const resetTerminal = () => {
+    // Set reset flag to prevent further logging
+    isResetRef.current = true;
+    
+    // Abort any ongoing fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    // Close any active EventSource connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    
+    // Reset all state
+    setLoading(false);
+    setLogs([]);
+    setError(null);
+  };
+
   const handleExtract = async () => {
     if (!fileId) return;
 
+    // Reset the flag to allow logging
+    isResetRef.current = false;
+    
     setLoading(true);
     setError(null);
     setLogs([]);
@@ -72,6 +105,9 @@ export default function ExtractPage() {
     addLog(command, true);
 
     try {
+      // Create AbortController for this request
+      abortControllerRef.current = new AbortController();
+      
       // Create FormData for the streaming request
       const formData = new FormData();
       formData.append("file_id", fileId);
@@ -81,6 +117,7 @@ export default function ExtractPage() {
       const response = await fetch("http://127.0.0.1:8000/extract/stream", {
         method: "POST",
         body: formData,
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -137,13 +174,19 @@ export default function ExtractPage() {
         }
       }
 
-    } catch (err) {
-      addLog("✗ ERROR: Connection to extraction service failed");
-      addLog("✗ Process terminated with exit code 1");
-      setError("Extraction failed. Please try again.");
-      console.error(err);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        addLog("✗ Extraction cancelled by user");
+        addLog("✗ Process terminated");
+      } else {
+        addLog("✗ ERROR: Connection to extraction service failed");
+        addLog("✗ Process terminated with exit code 1");
+        setError("Extraction failed. Please try again.");
+        console.error(err);
+      }
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -269,7 +312,11 @@ export default function ExtractPage() {
               {/* Terminal Title Bar */}
               <div className="bg-grey-800 border-b border-grey-700 px-4 py-2 flex items-center">
                 <div className="flex space-x-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <button 
+                    onClick={resetTerminal}
+                    className="w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 cursor-pointer transition-colors duration-150"
+                    title="Close terminal and return to mode selection"
+                  ></button>
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 </div>
