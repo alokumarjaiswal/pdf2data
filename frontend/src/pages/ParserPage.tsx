@@ -72,8 +72,6 @@ export default function ParserPage() {
           ))}
         </div>
 
-
-
         {/* Action Button */}
         <div className="text-center">
           <button
@@ -84,13 +82,11 @@ export default function ParserPage() {
             {!parser ? 
               'Select Parser' :
               parserOptions.find(p => p.value === parser)?.status === 'active' ? 
-              'Execute' : 
+              'Go' : 
               'In Development'
             }
           </button>
         </div>
-
-
       </div>
     </div>
   );

@@ -89,7 +89,7 @@ export default function StructurePreviewPage() {
             onClick={handleGoBack}
             className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
           >
-            ←
+            ← Back
           </button>
           <button
             onClick={handleExecuteParser}

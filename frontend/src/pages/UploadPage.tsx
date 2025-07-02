@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { commonStyles } from "../theme";
 
@@ -118,17 +118,18 @@ export default function UploadPage() {
 
   return (
     <Layout
+      fullViewport={true}
       rightNavItems={uploadedFileUrl ? (
         <>
           <button
             onClick={handleNewUpload}
-            className={`${commonStyles.navLink} ${commonStyles.navLinkInactive}`}
+            className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"
           >
             Upload New
           </button>
           <button
             onClick={handleContinueToExtract}
-            className={`${commonStyles.navLink} ${commonStyles.navLinkActive}`}
+            className="text-grey-200 hover:text-white font-mono text-xs transition-colors duration-200"
           >
             Continue to Extract
           </button>
@@ -138,9 +139,6 @@ export default function UploadPage() {
       {uploadedFileUrl ? (
         // PDF Viewer Mode
         <div className="h-full flex flex-col">
-          {/* Navigation Spacer */}
-          <div className="h-16 flex-shrink-0"></div>
-          
           {/* Expanded PDF Viewer */}
           <div className="flex-1 w-full">
             <iframe
@@ -156,11 +154,11 @@ export default function UploadPage() {
           </div>
         </div>
       ) : (
-        // Upload Mode
-        <div className="h-full flex items-center justify-center relative pt-16">
-          {/* Contained Drop Zone - Main Content Area Only */}
+        // Upload Mode - Centered to viewport
+        <div className="h-full flex items-center justify-center relative">
+          {/* Full viewport drop zone */}
           <div
-            className={`absolute inset-x-6 top-20 bottom-6 transition-all duration-200 ${
+            className={`absolute inset-0 transition-all duration-200 ${
               dragActive 
                 ? 'bg-grey-900 bg-opacity-30' 
                 : 'hover:bg-grey-900 hover:bg-opacity-5'
@@ -179,40 +177,38 @@ export default function UploadPage() {
             />
           </div>
 
-          {/* Visual Upload Interface */}
-          <div className="w-full max-w-2xl z-20 pointer-events-none">
-            <div className="p-12 text-center">
-              <div className="space-y-4">
-                {!uploading ? (
-                  <>
-                    <div className="w-16 h-16 mx-auto bg-grey-800 border border-grey-700 flex items-center justify-center">
-                      <span className="text-grey-300 text-xs font-mono shiny-text">PDF</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-grey-100 mb-2 shiny-text-strong">
-                        Drop PDF here or click to browse
-                      </h3>
-                      <p className="text-grey-400 shiny-text">
-                        Supports PDF files up to 50MB
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-16 h-16 mx-auto bg-grey-700 border border-grey-600 flex items-center justify-center">
-                      <div className="animate-spin w-8 h-8 border border-grey-500 border-t-grey-200"></div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-grey-100 mb-1 shiny-text-strong">
-                        Uploading...
-                      </h3>
-                      <p className="text-grey-400 shiny-text">
-                        Processing your PDF
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+          {/* Centered Upload Interface */}
+          <div className="w-full max-w-2xl z-20 pointer-events-none text-center">
+            <div className="space-y-4">
+              {!uploading ? (
+                <>
+                  <div className="w-16 h-16 mx-auto bg-grey-800 border border-grey-700 flex items-center justify-center">
+                    <span className="text-grey-300 text-xs font-mono shiny-text">PDF</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-grey-100 mb-2 shiny-text-strong">
+                      Drop PDF here or click to browse
+                    </h3>
+                    <p className="text-grey-400 shiny-text">
+                      Supports PDF files up to 50MB
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 mx-auto bg-grey-700 border border-grey-600 flex items-center justify-center">
+                    <div className="animate-spin w-8 h-8 border border-grey-500 border-t-grey-200"></div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-grey-100 mb-1 shiny-text-strong">
+                      Uploading...
+                    </h3>
+                    <p className="text-grey-400 shiny-text">
+                      Processing your PDF
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Error Message */}
