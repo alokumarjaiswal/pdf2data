@@ -162,6 +162,11 @@ export default function AIParserConfigPage() {
   };
 
   const handleProceed = async () => {
+    // Prevent multiple parse attempts
+    if (isValidating) {
+      return;
+    }
+    
     setError("");
     setIsValidating(true);
     
@@ -490,8 +495,12 @@ export default function AIParserConfigPage() {
           <div className="flex justify-center">
             <button
               onClick={handleProceed}
-              disabled={!fileId || isValidating || !validateJsonSchema(schema)}
-              className="group relative py-3 px-6 text-grey-200 hover:bg-white hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-mono shiny-text"
+              disabled={!fileId || isValidating || !validateJsonSchema(schema) || !prompt.trim()}
+              className={`group relative py-3 px-6 transition-all duration-200 font-mono shiny-text ${
+                !fileId || isValidating || !validateJsonSchema(schema) || !prompt.trim()
+                  ? 'text-grey-500 cursor-not-allowed opacity-50'
+                  : 'text-grey-200 hover:bg-white hover:text-black cursor-pointer'
+              }`}
             >
               <div className="flex items-center gap-2">
                 {isValidating ? (

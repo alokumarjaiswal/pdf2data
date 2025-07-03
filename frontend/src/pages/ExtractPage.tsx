@@ -108,7 +108,7 @@ export default function ExtractPage() {
   };
 
   const handleExtract = async () => {
-    if (!fileId) return;
+    if (!fileId || loading) return;
 
     // Reset the flag to allow logging
     isResetRef.current = false;
@@ -148,6 +148,7 @@ export default function ExtractPage() {
       // Read the stream
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
+      let buffer = ''; // Buffer for incomplete lines
 
       if (reader) {
         while (true) {
@@ -155,13 +156,26 @@ export default function ExtractPage() {
           
           if (done) break;
           
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+          
+          // Split by newlines and process complete lines
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
           
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6));
+                const jsonString = line.slice(6).trim();
+                if (!jsonString) continue; // Skip empty lines
+                
+                // Validate JSON before parsing
+                if (!jsonString.startsWith('{') || !jsonString.endsWith('}')) {
+                  console.warn('Skipping malformed JSON line:', jsonString.substring(0, 100) + '...');
+                  continue;
+                }
+                
+                const data = JSON.parse(jsonString);
                 
                 if (data.type === 'log') {
                   addLog(data.message);
@@ -188,10 +202,18 @@ export default function ExtractPage() {
                   setError("Extraction failed. Please try again.");
                 }
               } catch (e) {
-                console.error('Error parsing SSE data:', e);
+                const errorMsg = line.length > 200 ? line.substring(0, 200) + '...' : line;
+                console.error('Error parsing SSE data:', e, 'Raw line length:', line.length, 'Sample:', errorMsg);
+                addLog(`⚠ Warning: Received malformed data (${line.length} chars), continuing...`);
+                // Don't break the loop, just skip malformed lines
               }
             }
           }
+        }
+        
+        // Process any remaining data in buffer
+        if (buffer.trim()) {
+          console.warn('Incomplete data in buffer:', buffer.substring(0, 100) + '...');
         }
       }
 
@@ -245,8 +267,13 @@ export default function ExtractPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => navigate(-1)}
-                className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
+                onClick={() => !loading && navigate(-1)}
+                disabled={loading}
+                className={`text-xs font-mono transition-colors duration-200 ${
+                  loading 
+                    ? 'text-grey-600 cursor-not-allowed' 
+                    : 'text-grey-500 hover:text-grey-300'
+                }`}
               >
                 ← Back
               </button>
@@ -284,11 +311,14 @@ export default function ExtractPage() {
                       name="mode"
                       value={extractionMode.id}
                       checked={mode === extractionMode.id}
-                      onChange={() => setMode(extractionMode.id)}
+                      onChange={() => !loading && setMode(extractionMode.id)}
+                      disabled={loading}
                       className="sr-only"
                     />
                     <div className={`p-6 border transition-all duration-200 h-96 flex flex-col ${
-                      mode === extractionMode.id
+                      loading 
+                        ? 'opacity-50 cursor-not-allowed border-grey-800'
+                        : mode === extractionMode.id
                         ? 'border-grey-600 bg-grey-900 bg-opacity-30'
                         : 'border-grey-800 hover:border-grey-700 hover:bg-grey-900 hover:bg-opacity-20'
                     }`}>
@@ -345,10 +375,14 @@ export default function ExtractPage() {
             <div className="mt-12 text-center">
               <button
                 onClick={handleExtract}
-                disabled={loading}
-                className="text-lg py-4 px-8 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 shiny-text-strong"
+                disabled={loading || !mode}
+                className={`text-lg py-4 px-8 transition-all duration-200 shiny-text-strong ${
+                  loading || !mode
+                    ? 'text-grey-500 cursor-not-allowed opacity-50'
+                    : 'text-grey-200 hover:bg-white hover:text-black cursor-pointer'
+                }`}
               >
-                Start Text Extraction
+                {loading ? "Extracting..." : "Start Text Extraction"}
               </button>
             </div>
 

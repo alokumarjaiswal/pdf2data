@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import upload, extract, parse, api, mcp
 from app.db.mongo import init_database
-from app.utils.smart_indexer import start_smart_indexing
+# from app.utils.smart_indexer import start_smart_indexing
 import logging
 
 # Setup logging
@@ -38,8 +38,8 @@ async def startup_event():
     """Initialize database and smart indexing on application startup"""
     try:
         # Start smart indexing system (non-blocking, runs in background)
-        logger.info("🚀 Starting smart code indexing system...")
-        start_smart_indexing()
+        # logger.info("🚀 Starting smart code indexing system...")
+        # start_smart_indexing()
 
         await init_database()
         logger.info("✅ Database initialized successfully - All collections and indexes ready")

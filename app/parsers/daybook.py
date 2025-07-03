@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
+from .parser_registry import register_parser
 
 # ================================================================================
 # LOGGING CONFIGURATION
@@ -80,6 +81,7 @@ DEFAULT_VILLAGE_NAME = "Rajewal"
 # MAIN PARSER CLASS
 # ================================================================================
 
+@register_parser("DaybookParser")
 class DaybookParser:
     """
     A comprehensive parser for extracting structured data from daybook PDF text.

@@ -24,6 +24,11 @@ export default function UploadPage() {
   }, [uploadedFileUrl]);
 
   const handleUpload = async (file: File) => {
+    // Prevent multiple uploads
+    if (uploading) {
+      return;
+    }
+    
     setUploading(true);
     setError(null);
 
@@ -103,6 +108,11 @@ export default function UploadPage() {
     e.stopPropagation();
     setDragActive(false);
     
+    // Prevent drops during upload
+    if (uploading) {
+      return;
+    }
+    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.type === "application/pdf") {
@@ -116,6 +126,11 @@ export default function UploadPage() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Prevent file selection during upload
+    if (uploading) {
+      return;
+    }
+    
     const file = e.target.files?.[0];
     if (file) {
       if (file.type === "application/pdf") {
@@ -202,19 +217,24 @@ export default function UploadPage() {
             className={`absolute inset-0 transition-all duration-200 ${
               dragActive 
                 ? 'bg-grey-900 bg-opacity-30' 
-                : 'hover:bg-grey-900 hover:bg-opacity-5'
+                : uploading 
+                  ? 'pointer-events-none' 
+                  : 'hover:bg-grey-900 hover:bg-opacity-5'
             }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={uploading ? undefined : handleDrag}
+            onDragLeave={uploading ? undefined : handleDrag}
+            onDragOver={uploading ? undefined : handleDrag}
+            onDrop={uploading ? undefined : handleDrop}
           >
             <input
               ref={fileInputRef}
               type="file"
               accept="application/pdf"
               onChange={handleFileSelect}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              disabled={uploading}
+              className={`absolute inset-0 w-full h-full opacity-0 z-10 ${
+                uploading ? 'cursor-not-allowed' : 'cursor-pointer'
+              }`}
             />
           </div>
 
@@ -231,7 +251,7 @@ export default function UploadPage() {
                       Drop PDF here or click to browse
                     </h3>
                     <p className="text-grey-400 shiny-text">
-                      Supports PDF files up to 50MB
+                      {uploading ? "Please wait, upload in progress..." : "Supports PDF files up to 50MB"}
                     </p>
                   </div>
                 </>

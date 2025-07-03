@@ -34,6 +34,11 @@ export default function ListPage() {
   };
 
   const handleDelete = async (fileId: string) => {
+    // Prevent multiple delete attempts
+    if (deleting === fileId) {
+      return;
+    }
+    
     setDeleting(fileId);
     setDeleteConfirm(null);
     

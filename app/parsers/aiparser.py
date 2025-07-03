@@ -6,7 +6,9 @@ from openai import OpenAI
 from pdf2image import convert_from_path
 from io import BytesIO
 from app.config import config
+from .parser_registry import register_parser
 
+@register_parser("AIParser")
 class AIParser:
     def __init__(self, api_key: Optional[str] = None, prompt: Optional[str] = None, schema: Optional[str] = None):
         """

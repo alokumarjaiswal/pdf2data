@@ -13,6 +13,35 @@ import threading
 router = APIRouter()
 
 VALID_MODES = ["digital", "ocr", "auto"]
+MAX_SSE_MESSAGE_SIZE = 32768  # 32KB limit for individual SSE messages
+
+def safe_sse_message(message_type, data=None, message=None):
+    """Safely create SSE message, ensuring it doesn't exceed size limits"""
+    if message_type == 'log':
+        response_data = {'type': 'log', 'message': message}
+    elif message_type == 'error':
+        response_data = {'type': 'error', 'message': message}
+    elif message_type == 'success':
+        # For success, only send essential data without large text content
+        response_data = {'type': 'success', 'data': data}
+    else:
+        response_data = {'type': message_type, 'data': data}
+    
+    json_str = json.dumps(response_data)
+    
+    # Check size and truncate if necessary
+    if len(json_str) > MAX_SSE_MESSAGE_SIZE:
+        if message_type == 'log' and message:
+            # Truncate log messages
+            truncated_message = message[:MAX_SSE_MESSAGE_SIZE // 2] + "... [message truncated]"
+            response_data = {'type': 'log', 'message': truncated_message}
+            json_str = json.dumps(response_data)
+        else:
+            # For other types, send error about size
+            response_data = {'type': 'error', 'message': f'Message too large ({len(json_str)} bytes), check server logs'}
+            json_str = json.dumps(response_data)
+    
+    return f"data: {json_str}\n\n"
 
 @router.post("/extract")
 async def extract_text(file_id: str = Form(...), mode: str = Form(...)):
@@ -172,7 +201,14 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
                                     }
                                 )
                                 
-                                yield f"data: {json.dumps({'type': 'success', 'data': result_data})}\n\n"
+                                # Send success message without the large text content to avoid JSON parsing issues
+                                success_data = {
+                                    "method": result_data["method"],
+                                    "num_pages": result_data["num_pages"],
+                                    "num_chars": result_data["num_chars"],
+                                    "file_path": text_file_path
+                                }
+                                yield safe_sse_message('success', success_data)
                             else:
                                 # Store error logs
                                 await LogManager.store_log(
@@ -181,16 +217,16 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
                                     log_content=f"Extraction failed: {result_data}",
                                     metadata={"error": True, "mode": mode, "streaming": True}
                                 )
-                                yield f"data: {json.dumps({'type': 'error', 'message': result_data})}\n\n"
+                                yield safe_sse_message('error', message=result_data)
                         break
                     else:
                         log_messages.append(message)
-                        yield f"data: {json.dumps({'type': 'log', 'message': message})}\n\n"
+                        yield safe_sse_message('log', message=message)
                 
                 await asyncio.sleep(0.1)
                 
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                yield safe_sse_message('error', message=str(e))
                 break
     
     return StreamingResponse(

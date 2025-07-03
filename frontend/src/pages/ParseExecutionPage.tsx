@@ -11,7 +11,9 @@ export default function ParseExecutionPage() {
   const [success, setSuccess] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
   const [originalFilename, setOriginalFilename] = useState<string>("");
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fileId = searchParams.get("file_id");
   const parser = searchParams.get("parser");
@@ -37,6 +39,23 @@ export default function ParseExecutionPage() {
 
     fetchDocumentInfo();
   }, [fileId]);
+
+  // Cleanup function
+  const cleanup = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      setTimeoutId(null);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, []);
 
   // Blinking cursor effect
   useEffect(() => {
@@ -71,6 +90,11 @@ export default function ParseExecutionPage() {
   };
 
   const executeParsing = async () => {
+    // Prevent multiple parse executions
+    if (loading && abortControllerRef.current) {
+      return;
+    }
+    
     if (!fileId || !parser) {
       addLog("✗ ERROR: Missing required parameters");
       setError("Missing required parameters");
@@ -84,6 +108,24 @@ export default function ParseExecutionPage() {
     addLog(`parse --parser=${parser} --file=${fileId}`, true);
     addLog("Looking for extracted text file...");
     addLog("Preparing data for parsing...");
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    // Set up timeout (30 seconds for most parsers, 120 seconds for AI parser)
+    const timeoutDuration = parser === 'AIParser' ? 120000 : 30000;
+    const timeout = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        addLog("✗ ERROR: Request timed out");
+        addLog(`✗ Parser took longer than ${timeoutDuration / 1000} seconds`);
+        addLog("✗ Process terminated due to timeout");
+        setError(`Parsing timed out after ${timeoutDuration / 1000} seconds. The parser may be overloaded or there might be an issue with the document.`);
+        setLoading(false);
+      }
+    }, timeoutDuration);
+    
+    setTimeoutId(timeout);
 
     const formData = new FormData();
     formData.append("file_id", fileId);
@@ -109,10 +151,32 @@ export default function ParseExecutionPage() {
       const res = await fetch(API_ENDPOINTS.parse, {
         method: "POST",
         body: formData,
+        signal: abortControllerRef.current.signal,
       });
 
+      // Clear timeout on successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        setTimeoutId(null);
+      }
+
       if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+        const errorText = await res.text();
+        let errorMessage = `Server error: ${res.status}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch {
+          // If not JSON, use the raw text
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await res.json();
@@ -137,44 +201,80 @@ export default function ParseExecutionPage() {
         }, 1000);
       }, 500);
 
-    } catch (err) {
-      addLog("✗ ERROR: Parsing failed!");
-      addLog(`✗ ${err instanceof Error ? err.message : 'Unknown error'}`);
-      addLog("✗ Process terminated with exit code 1");
-      
-      // Enhanced error messages for AIParser
-      let errorMessage = "Parsing failed. Please try again or select a different parser.";
-      
-      if (parser === 'AIParser') {
-        if (err instanceof Error && err.message.includes('API key')) {
-          errorMessage = "OpenAI API key error. Please check your OPENAI_API_KEY environment variable.";
-        } else if (err instanceof Error && err.message.includes('JSON')) {
-          errorMessage = "AI response format error. Try simplifying your JSON schema or prompt.";
-        } else if (err instanceof Error && err.message.includes('quota')) {
-          errorMessage = "OpenAI quota exceeded. Please check your API usage limits.";
-        } else if (prompt || jsonSchema) {
-          errorMessage = "AI parsing failed with custom configuration. Try using default settings or simplify your prompt/schema.";
-        } else {
-          errorMessage = "AI parsing failed. Please check your OpenAI API key and try again.";
+    } catch (err: any) {
+      // Clear timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        setTimeoutId(null);
+      }
+
+      if (err.name === 'AbortError') {
+        addLog("✗ Parsing cancelled by user");
+        addLog("✗ Process terminated");
+        setError("Parsing was cancelled.");
+      } else {
+        addLog("✗ ERROR: Parsing failed!");
+        addLog(`✗ ${err instanceof Error ? err.message : 'Unknown error'}`);
+        addLog("✗ Process terminated with exit code 1");
+        
+        // Enhanced error messages for AIParser
+        let errorMessage = "Parsing failed. Please try again or select a different parser.";
+        
+        if (parser === 'AIParser') {
+          if (err instanceof Error && err.message.includes('API key')) {
+            errorMessage = "OpenAI API key error. Please check your OPENAI_API_KEY environment variable.";
+          } else if (err instanceof Error && err.message.includes('JSON')) {
+            errorMessage = "AI response format error. Try simplifying your JSON schema or prompt.";
+          } else if (err instanceof Error && err.message.includes('quota')) {
+            errorMessage = "OpenAI quota exceeded. Please check your API usage limits.";
+          } else if (prompt || jsonSchema) {
+            errorMessage = "AI parsing failed with custom configuration. Try using default settings or simplify your prompt/schema.";
+          } else {
+            errorMessage = "AI parsing failed. Please check your OpenAI API key and try again.";
+          }
         }
+        
+        setError(errorMessage);
       }
       
-      setError(errorMessage);
       setLoading(false);
+    } finally {
+      // Cleanup
+      abortControllerRef.current = null;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        setTimeoutId(null);
+      }
     }
   };
 
   // Start parsing when component mounts
   useEffect(() => {
-    executeParsing();
+    // Add initial log to show the page is working
+    addLog("=== Parse Execution Page Loaded ===");
+    addLog("Initializing parser execution environment...");
+    
+    // Small delay to let user see initial logs
+    const initTimer = setTimeout(() => {
+      executeParsing();
+    }, 500);
+
+    return () => clearTimeout(initTimer);
   }, []);
+
+  const handleCancel = () => {
+    if (loading && abortControllerRef.current) {
+      // If parsing is active, cancel it
+      addLog("User requested cancellation...");
+      abortControllerRef.current.abort();
+    } else {
+      // If not loading, go back to previous page
+      navigate(-1);
+    }
+  };
 
   const handleViewResults = () => {
     navigate(`/preview/${fileId}`);
-  };
-
-  const handleStartOver = () => {
-    navigate('/');
   };
 
   return (
@@ -187,8 +287,13 @@ export default function ParseExecutionPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => navigate(-1)}
-                className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
+                onClick={() => !loading && navigate(-1)}
+                disabled={loading}
+                className={`text-xs font-mono transition-colors duration-200 ${
+                  loading 
+                    ? 'text-grey-600 cursor-not-allowed' 
+                    : 'text-grey-500 hover:text-grey-300'
+                }`}
               >
                 ← Back
               </button>
@@ -220,89 +325,71 @@ export default function ParseExecutionPage() {
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
         <div className="w-full max-w-5xl">
-        {/* Terminal Window */}
-        <div className="bg-black border border-grey-700 shadow-2xl">
-          {/* Terminal Title Bar */}
-          <div className="bg-grey-800 border-b border-grey-700 px-4 py-2 flex items-center">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-            <div className="flex-1 text-center">
-              <span className="text-grey-300 text-sm font-mono">PDF2Data Parser Terminal</span>
-            </div>
-          </div>
-          
-          {/* Terminal Content */}
-          <div 
-            ref={terminalRef}
-            className="p-4 h-96 overflow-y-auto bg-black font-mono text-sm text-green-400"
-            style={{ 
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(5,5,5,0.95) 100%)',
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#333 transparent'
-            }}
-          >
-            {logs.map((log, index) => (
-              <div key={index} className="mb-1 leading-relaxed">
-                {log.startsWith('pdf2data@parser:~$') ? (
-                  <span className="text-white">
-                    <span className="text-green-400">pdf2data@parser</span>
-                    <span className="text-white">:</span>
-                    <span className="text-blue-400">~</span>
-                    <span className="text-white">$ </span>
-                    <span className="text-yellow-300">{log.split('$ ')[1]}</span>
-                  </span>
-                ) : log.includes('✓') ? (
-                  <span className="text-green-300">{log}</span>
-                ) : log.includes('✗') || log.includes('ERROR') ? (
-                  <span className="text-red-400">{log}</span>
-                ) : log.includes('⚠') ? (
-                  <span className="text-yellow-300">{log}</span>
-                ) : (
-                  <span className="text-grey-300">{log}</span>
-                )}
+          {/* Terminal Window */}
+          <div className="bg-black border border-grey-700 shadow-2xl">
+            {/* Terminal Title Bar */}
+            <div className="bg-grey-800 border-b border-grey-700 px-4 py-2 flex items-center">
+              <div className="flex space-x-2">
+                <button 
+                  onClick={handleCancel}
+                  className="w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 cursor-pointer transition-colors duration-150"
+                  title={loading ? "Cancel parsing" : "Close terminal and return"}
+                ></button>
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               </div>
-            ))}
+              <div className="flex-1 text-center">
+                <span className="text-grey-300 text-sm font-mono">PDF2Data Parser Terminal</span>
+              </div>
+            </div>
             
-            {/* Active prompt with cursor */}
-            {loading && (
-              <div className="mb-1 leading-relaxed">
-                <span className="text-green-400">pdf2data@parser</span>
-                <span className="text-white">:</span>
-                <span className="text-blue-400">~</span>
-                <span className="text-white">$ </span>
-                <span className={`text-white ${showCursor ? 'opacity-100' : 'opacity-0'}`}>▋</span>
-              </div>
-            )}
+            {/* Terminal Content */}
+            <div 
+              ref={terminalRef}
+              className="p-4 h-96 overflow-y-auto bg-black font-mono text-sm text-green-400"
+              style={{ 
+                background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(5,5,5,0.95) 100%)',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#333 transparent'
+              }}
+            >
+              {logs.map((log, index) => (
+                <div key={index} className="mb-1 leading-relaxed">
+                  {log.startsWith('pdf2data@parser:~$') ? (
+                    <span className="text-white">
+                      <span className="text-green-400">pdf2data@parser</span>
+                      <span className="text-white">:</span>
+                      <span className="text-blue-400">~</span>
+                      <span className="text-white">$ </span>
+                      <span className="text-yellow-300">{log.split('$ ')[1]}</span>
+                    </span>
+                  ) : log.includes('✓') ? (
+                    <span className="text-green-300">{log}</span>
+                  ) : log.includes('✗') || log.includes('ERROR') ? (
+                    <span className="text-red-400">{log}</span>
+                  ) : log.includes('⚠') ? (
+                    <span className="text-yellow-300">{log}</span>
+                  ) : (
+                    <span className="text-grey-300">{log}</span>
+                  )}
+                </div>
+              ))}
+              
+              {/* Active prompt with cursor */}
+              {loading && (
+                <div className="mb-1 leading-relaxed">
+                  <span className="text-green-400">pdf2data@parser</span>
+                  <span className="text-white">:</span>
+                  <span className="text-blue-400">~</span>
+                  <span className="text-white">$ </span>
+                  <span className={`text-white ${showCursor ? 'opacity-100' : 'opacity-0'}`}>▋</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-
         </div>
       </div>
 
-      {/* Bottom Action Bar - Only show on error */}
-      {error && (
-        <div className="w-full bg-black flex-shrink-0">
-          <div className="max-w-full mx-auto px-6 py-6">
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
-              >
-                ← Go Back
-              </button>
-              <button
-                onClick={handleStartOver}
-                className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
-              >
-                Start Over
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
