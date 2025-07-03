@@ -15,8 +15,12 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     # Validate file type
     if not file.filename.endswith('.pdf'):
-        print(f"❌ Invalid file type: {file.filename}")
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+        error_detail = {
+            "error_code": "INVALID_FILE_TYPE",
+            "message": f"Invalid file type: '{file.filename}'. Only PDF files are allowed."
+        }
+        print(f"❌ {error_detail['message']}")
+        raise HTTPException(status_code=400, detail=error_detail)
     
     file_id = str(uuid4())
     print(f"🔵 Generated file_id: {file_id}")
@@ -30,17 +34,22 @@ async def upload_pdf(file: UploadFile = File(...)):
             print(f"🔵 File content read successfully, size: {len(file_content)} bytes")
             
             if len(file_content) == 0:
-                print(f"❌ Empty file uploaded")
-                raise HTTPException(status_code=400, detail="Empty file uploaded")
+                error_detail = {
+                    "error_code": "EMPTY_FILE_UPLOADED",
+                    "message": "The uploaded file is empty."
+                }
+                print(f"❌ {error_detail['message']}")
+                raise HTTPException(status_code=400, detail=error_detail)
             
             # Validate file size (50MB limit)
             max_size_bytes = 50 * 1024 * 1024  # 50MB
             if len(file_content) > max_size_bytes:
-                print(f"❌ File too large: {len(file_content)} bytes")
-                raise HTTPException(
-                    status_code=413, 
-                    detail=f"File too large. Maximum size is 50MB. File size: {len(file_content) / 1024 / 1024:.1f}MB"
-                )
+                error_detail = {
+                    "error_code": "FILE_TOO_LARGE",
+                    "message": f"File too large. Maximum size is 50MB. File size: {len(file_content) / 1024 / 1024:.1f}MB"
+                }
+                print(f"❌ {error_detail['message']}")
+                raise HTTPException(status_code=413, detail=error_detail)
             
             # Count pages immediately upon upload
             print(f"🔵 Counting PDF pages...")
@@ -131,4 +140,8 @@ async def upload_pdf(file: UploadFile = File(...)):
         except Exception as log_error:
             print(f"❌ Failed to log error: {log_error}")
             
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        error_detail = {
+            "error_code": "UPLOAD_FAILED",
+            "message": f"An unexpected error occurred during upload: {str(e)}"
+        }
+        raise HTTPException(status_code=500, detail=error_detail)

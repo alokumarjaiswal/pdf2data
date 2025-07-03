@@ -44,7 +44,20 @@ export default function UploadPage() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        // Enhanced error handling to parse backend JSON errors
+        try {
+          const errorData = await response.json();
+          if (errorData.detail && typeof errorData.detail === 'object' && errorData.detail.message) {
+            throw new Error(errorData.detail.message);
+          } else if (errorData.detail) {
+            throw new Error(String(errorData.detail));
+          }
+          throw new Error(`Upload failed with status: ${response.status}`);
+        } catch (jsonError) {
+          throw new Error(`Upload failed: ${response.statusText}`);
+        }
+      }
 
       const result = await response.json();
       const uploadedFileId = result.file_id;
@@ -60,7 +73,7 @@ export default function UploadPage() {
       setFileId(uploadedFileId);
       
     } catch (err) {
-      setError("Failed to upload PDF. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to upload PDF. Please try again.");
       console.error(err);
       setSelectedFile(null);
     } finally {
