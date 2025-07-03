@@ -21,12 +21,12 @@ class DataLifecycleManager:
     """
     
     @staticmethod
-    async def find_orphaned_documents(max_age_hours: int = 24) -> List[Dict[str, Any]]:
+    async def find_orphaned_documents(max_age_hours: int = 168) -> List[Dict[str, Any]]:
         """
         Find documents that have been uploaded and possibly extracted but never parsed.
         
         Args:
-            max_age_hours: Maximum age in hours for a document to be considered orphaned
+            max_age_hours: Maximum age in hours for a document to be considered orphaned (default 7 days)
             
         Returns:
             List of orphaned document metadata
@@ -120,12 +120,12 @@ class DataLifecycleManager:
         return cleanup_results
     
     @staticmethod
-    async def cleanup_all_orphaned_documents(max_age_hours: int = 24, dry_run: bool = False) -> Dict[str, Any]:
+    async def cleanup_all_orphaned_documents(max_age_hours: int = 168, dry_run: bool = False) -> Dict[str, Any]:
         """
         Clean up all orphaned documents older than specified age.
         
         Args:
-            max_age_hours: Maximum age in hours for cleanup
+            max_age_hours: Maximum age in hours for cleanup (default 7 days)
             dry_run: If True, only find orphaned docs without deleting
             
         Returns:
@@ -306,8 +306,8 @@ class DataLifecycleManager:
             "processing_stages.parsed": True
         })
         
-        # Orphaned data (older than 24 hours)
-        orphaned_docs = await DataLifecycleManager.find_orphaned_documents(24)
+        # Orphaned data (older than 7 days instead of 24 hours)
+        orphaned_docs = await DataLifecycleManager.find_orphaned_documents(168)  # Changed from 24 to 168 hours
         stats["orphaned_documents"] = len(orphaned_docs)
         
         # Age analysis

@@ -1,4 +1,5 @@
 import DaybookPreview from './DaybookPreview';
+import AIParserPreview from './AIParserPreview';
 import GenericPreview from './GenericPreview';
 
 // Base interface that all parsed data should follow
@@ -23,6 +24,7 @@ export type PreviewComponent = React.ComponentType<PreviewComponentProps>;
 // Preview registry mapping parser names to their preview components
 export const previewRegistry: Record<string, PreviewComponent> = {
   'daybookparser': DaybookPreview,
+  'aiparser': AIParserPreview,
   // Add more parser-specific previews here as needed
   // 'invoiceparser': InvoicePreview,
   // 'receiptparser': ReceiptPreview,

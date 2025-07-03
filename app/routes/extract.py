@@ -6,6 +6,7 @@ from app.utils.temp_file import safe_temp_file
 from app.utils.memory_monitor import MemoryMonitor, force_cleanup
 import json
 import asyncio
+import os
 from queue import Queue
 import threading
 
@@ -42,16 +43,24 @@ async def extract_text(file_id: str = Form(...), mode: str = Form(...)):
                     method=result["method"]
                 )
                 
+                # Also save extracted text to data directory
+                extracted_dir = "data/extracted_pages"
+                os.makedirs(extracted_dir, exist_ok=True)
+                text_file_path = os.path.join(extracted_dir, f"extracted_{mode}_{file_id}.txt")
+                with open(text_file_path, "w", encoding="utf-8") as f:
+                    f.write(result["extracted_text"])
+                
                 # Log the extraction
                 await LogManager.store_log(
                     file_id=file_id,
                     process_type="extraction",
-                    log_content=f"Extraction completed successfully using {mode} mode",
+                    log_content=f"Extraction completed successfully using {mode} mode (saved to {text_file_path})",
                     metadata={
                         "mode": mode,
                         "method": result["method"],
                         "pages": result["num_pages"],
-                        "chars": result["num_chars"]
+                        "chars": result["num_chars"],
+                        "text_file_path": text_file_path
                     }
                 )
             # Temporary file is automatically cleaned up when exiting the context
@@ -75,7 +84,8 @@ async def extract_text(file_id: str = Form(...), mode: str = Form(...)):
         "pages": result["num_pages"],
         "chars": result["num_chars"],
         "saved_as": f"extracted_{mode}_{file_id}.txt",  # Keep for API compatibility
-        "message": "Extraction complete and stored in database"
+        "file_path": text_file_path,
+        "message": "Extraction complete and stored in database and file system"
     }
 
 @router.post("/extract/stream")
@@ -140,6 +150,13 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
                                     method=result_data["method"]
                                 )
                                 
+                                # Also save extracted text to data directory
+                                extracted_dir = "data/extracted_pages"
+                                os.makedirs(extracted_dir, exist_ok=True)
+                                text_file_path = os.path.join(extracted_dir, f"extracted_{mode}_{file_id}.txt")
+                                with open(text_file_path, "w", encoding="utf-8") as f:
+                                    f.write(result_data["extracted_text"])
+                                
                                 # Store all logs in database
                                 await LogManager.store_log(
                                     file_id=file_id,
@@ -150,7 +167,8 @@ async def extract_text_stream(file_id: str = Form(...), mode: str = Form(...)):
                                         "method": result_data["method"],
                                         "pages": result_data["num_pages"],
                                         "chars": result_data["num_chars"],
-                                        "streaming": True
+                                        "streaming": True,
+                                        "text_file_path": text_file_path
                                     }
                                 )
                                 

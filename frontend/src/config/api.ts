@@ -2,7 +2,7 @@
 // In development with Vite proxy, use relative URLs
 // In production, use the environment variable or fallback
 const isDevelopment = import.meta.env.DEV;
-export const API_BASE_URL = isDevelopment 
+const API_BASE_URL = isDevelopment 
   ? '' // Use relative URLs in development (proxied by Vite)
   : import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -18,4 +18,5 @@ export const API_ENDPOINTS = {
   delete: (fileId: string) => `${API_BASE_URL}/api/delete/${fileId}`,
   logs: (fileId: string) => `${API_BASE_URL}/api/logs/${fileId}`,
   stats: `${API_BASE_URL}/api/stats`,
+  pagePreview: (fileId: string, pageNum: number) => `${API_BASE_URL}/api/page-preview/${fileId}/${pageNum}`,
 } as const; 

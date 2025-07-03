@@ -9,6 +9,7 @@ export default function ExtractPage() {
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [showCursor, setShowCursor] = useState(true);
+  const [originalFilename, setOriginalFilename] = useState<string>("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -17,6 +18,25 @@ export default function ExtractPage() {
   const isResetRef = useRef<boolean>(false);
 
   const fileId = searchParams.get("file_id");
+
+  // Fetch document info to get original filename
+  useEffect(() => {
+    const fetchDocumentInfo = async () => {
+      if (!fileId) return;
+
+      try {
+        const response = await fetch(API_ENDPOINTS.data(fileId));
+        if (!response.ok) throw new Error("Failed to fetch document info");
+        
+        const data = await response.json();
+        setOriginalFilename(data.original_filename || "Unknown.pdf");
+      } catch (err) {
+        console.error("Error fetching document info:", err);
+      }
+    };
+
+    fetchDocumentInfo();
+  }, [fileId]);
 
   // Blinking cursor effect
   useEffect(() => {
@@ -216,8 +236,42 @@ export default function ExtractPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-grey-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-6xl">
+    <div className="h-screen bg-black text-grey-100 flex flex-col overflow-hidden">
+      
+      {/* Top Navigation */}
+      <div className="w-full bg-black border-b border-grey-800 flex-shrink-0">
+        <div className="max-w-full mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            {/* Left Navigation */}
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
+              >
+                ← Back
+              </button>
+              <span className="text-xs font-mono text-grey-400">Text Extraction</span>
+            </div>
+            
+            {/* Right Navigation - File Info & Status */}
+            <div className="flex items-center space-x-4">
+              {originalFilename && (
+                <span className="text-xs font-mono text-grey-500">{originalFilename}</span>
+              )}
+              {mode && !loading && logs.length === 0 && (
+                <span className="text-xs font-mono text-blue-400">Mode: {mode}</span>
+              )}
+              {loading && (
+                <span className="text-xs font-mono text-green-400">● Extracting...</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-6xl">
         {!loading && logs.length === 0 ? (
           // Extraction Method Selection Phase
           <div className="mb-12">
@@ -372,6 +426,7 @@ export default function ExtractPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

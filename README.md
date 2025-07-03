@@ -14,9 +14,7 @@ A comprehensive PDF extraction and parsing system with a modern web interface. U
 - **🔍 Multi-Mode Text Extraction** - Digital, OCR, and auto-detection methods
 - **📊 Structured Data Parsing** - Extensible parser system for custom data formats
 - **⚡ Real-Time Processing** - Streaming extraction with live progress updates
-- **🗃️ Database-First Architecture** - No filesystem dependencies, everything in MongoDB
-
-### Advanced Features
+- **🗃️ Hybrid Storage Strategy** - MongoDB as the source of truth, with filesystem caching for performance and debuggability.
 - **🧠 Memory Management** - Comprehensive memory monitoring and cleanup
 - **🔄 Data Lifecycle Management** - Automatic orphan detection and cleanup
 - **📈 Processing Analytics** - Detailed statistics and workflow tracking
@@ -83,7 +81,7 @@ A comprehensive PDF extraction and parsing system with a modern web interface. U
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone "https://github.com/alokumarjaiswal/pdf2data.git"
    cd pdf2data
    ```
 
@@ -105,6 +103,9 @@ A comprehensive PDF extraction and parsing system with a modern web interface. U
    ```bash
    # Optional: Set MongoDB URI
    export MONGO_URI="mongodb://localhost:27017"
+   
+   # Required for AIParser: Set OpenAI API key
+   export OPENAI_API_KEY="your_openai_api_key_here"
    ```
 
 5. **Install Tesseract OCR:**
@@ -184,7 +185,7 @@ Content-Type: application/x-www-form-urlencoded
 Parse extracted text into structured data.
 Parameters:
 - file_id: string (required)
-- parser: "DaybookParser" | string (required)
+- parser: "DaybookParser" | "AIParser" | string (required)
 ```
 
 ### Data Management
@@ -408,6 +409,14 @@ processing_logs: [["file_id", "process_type"], "logged_at"]
 - Comprehensive logging and error handling
 - Supports person names, business accounts, and transactions
 
+**AIParser:**
+- Uses OpenAI's GPT-4 Vision model for intelligent document parsing
+- **Dual-Mode Analysis:** Can process either raw text for speed or full PDF pages (including images) for higher accuracy on complex layouts.
+- Automatically extracts structured data from any document type
+- Supports both text and image analysis for complex layouts
+- Configurable prompts and output schemas
+- Requires OpenAI API key (set via OPENAI_API_KEY environment variable)
+
 ## 🧠 Memory Management
 
 ### Features
@@ -459,6 +468,8 @@ Documents are considered "orphaned" if:
 - Uploaded but not extracted for > 24 hours
 - Extracted but not parsed for > 24 hours
 - Processing abandoned midway
+
+**Note:** Lifecycle management operates on the MongoDB records, which are considered the single source of truth for system state.
 
 ### Cleanup Operations
 

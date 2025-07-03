@@ -25,9 +25,13 @@ class DocumentManager:
     """Handles all document-related database operations"""
     
     @staticmethod
-    async def create_document(file_id: str, original_filename: str, file_content: bytes) -> Dict[str, Any]:
+    async def create_document(file_id: str, original_filename: str, file_content: bytes, additional_metadata: Dict = None) -> Dict[str, Any]:
         """Create a new document record and store PDF in GridFS"""
         try:
+            print(f"🔵 DocumentManager: Starting create_document for {file_id}")
+            print(f"🔵 DocumentManager: Filename: {original_filename}, Size: {len(file_content)} bytes")
+            
+            print(f"🔵 DocumentManager: Opening GridFS upload stream...")
             # Store PDF in GridFS
             grid_in = gridfs_bucket.open_upload_stream(
                 filename=f"original_{file_id}.pdf",
@@ -38,9 +42,17 @@ class DocumentManager:
                     "uploaded_at": datetime.utcnow()
                 }
             )
-            await grid_in.write(file_content)
-            await grid_in.close()
+            print(f"✅ DocumentManager: GridFS upload stream opened")
             
+            print(f"🔵 DocumentManager: Writing content to GridFS...")
+            await grid_in.write(file_content)
+            print(f"✅ DocumentManager: Content written to GridFS")
+            
+            print(f"🔵 DocumentManager: Closing GridFS stream...")
+            await grid_in.close()
+            print(f"✅ DocumentManager: GridFS stream closed, file_id: {grid_in._id}")
+            
+            print(f"🔵 DocumentManager: Creating document metadata record...")
             # Create document metadata record
             document_record = {
                 "_id": file_id,
@@ -56,17 +68,29 @@ class DocumentManager:
                 }
             }
             
+            # Add any additional metadata
+            if additional_metadata:
+                document_record.update(additional_metadata)
+            
+            print(f"🔵 DocumentManager: Inserting document record...")
             await documents_collection.insert_one(document_record)
+            print(f"✅ DocumentManager: Document record inserted successfully")
+            
             logger.info(f"Document {file_id} stored successfully in database")
             
-            return {
+            result = {
                 "file_id": file_id,
                 "original_filename": original_filename,
                 "gridfs_file_id": str(grid_in._id),
                 "file_size": len(file_content)
             }
+            print(f"🎉 DocumentManager: create_document completed successfully for {file_id}")
+            return result
             
         except Exception as e:
+            print(f"❌ DocumentManager: Error in create_document for {file_id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             logger.error(f"Error storing document {file_id}: {str(e)}")
             raise
     

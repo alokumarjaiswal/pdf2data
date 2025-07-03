@@ -10,10 +10,33 @@ export default function ParseExecutionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
+  const [originalFilename, setOriginalFilename] = useState<string>("");
   const terminalRef = useRef<HTMLDivElement>(null);
 
   const fileId = searchParams.get("file_id");
   const parser = searchParams.get("parser");
+  const prompt = searchParams.get("prompt");
+  const jsonSchema = searchParams.get("json_schema");
+  const pageNum = searchParams.get("page_num");
+
+  // Fetch document info to get original filename
+  useEffect(() => {
+    const fetchDocumentInfo = async () => {
+      if (!fileId) return;
+
+      try {
+        const response = await fetch(API_ENDPOINTS.data(fileId));
+        if (!response.ok) throw new Error("Failed to fetch document info");
+        
+        const data = await response.json();
+        setOriginalFilename(data.original_filename || "Unknown.pdf");
+      } catch (err) {
+        console.error("Error fetching document info:", err);
+      }
+    };
+
+    fetchDocumentInfo();
+  }, [fileId]);
 
   // Blinking cursor effect
   useEffect(() => {
@@ -65,6 +88,20 @@ export default function ParseExecutionPage() {
     const formData = new FormData();
     formData.append("file_id", fileId);
     formData.append("parser", parser);
+    
+    // Add AIParser-specific parameters if they exist
+    if (prompt) {
+      formData.append("prompt", prompt);
+      addLog("✓ Custom AI prompt provided");
+    }
+    if (jsonSchema) {
+      formData.append("json_schema", jsonSchema);
+      addLog("✓ Custom JSON schema provided");
+    }
+    if (pageNum) {
+      formData.append("page_num", pageNum);
+      addLog(`✓ Image analysis enabled for page ${parseInt(pageNum) + 1}`);
+    }
 
     try {
       addLog("Sending parsing request to server...");
@@ -104,7 +141,25 @@ export default function ParseExecutionPage() {
       addLog("✗ ERROR: Parsing failed!");
       addLog(`✗ ${err instanceof Error ? err.message : 'Unknown error'}`);
       addLog("✗ Process terminated with exit code 1");
-      setError("Parsing failed. Please try again or select a different parser.");
+      
+      // Enhanced error messages for AIParser
+      let errorMessage = "Parsing failed. Please try again or select a different parser.";
+      
+      if (parser === 'AIParser') {
+        if (err instanceof Error && err.message.includes('API key')) {
+          errorMessage = "OpenAI API key error. Please check your OPENAI_API_KEY environment variable.";
+        } else if (err instanceof Error && err.message.includes('JSON')) {
+          errorMessage = "AI response format error. Try simplifying your JSON schema or prompt.";
+        } else if (err instanceof Error && err.message.includes('quota')) {
+          errorMessage = "OpenAI quota exceeded. Please check your API usage limits.";
+        } else if (prompt || jsonSchema) {
+          errorMessage = "AI parsing failed with custom configuration. Try using default settings or simplify your prompt/schema.";
+        } else {
+          errorMessage = "AI parsing failed. Please check your OpenAI API key and try again.";
+        }
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -123,8 +178,48 @@ export default function ParseExecutionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-grey-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl">
+    <div className="h-screen bg-black text-grey-100 flex flex-col overflow-hidden">
+      
+      {/* Top Navigation */}
+      <div className="w-full bg-black border-b border-grey-800 flex-shrink-0">
+        <div className="max-w-full mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            {/* Left Navigation */}
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
+              >
+                ← Back
+              </button>
+              <span className="text-xs font-mono text-grey-400">Parse Execution</span>
+            </div>
+            
+            {/* Right Navigation - Status Info */}
+            <div className="flex items-center space-x-4">
+              {originalFilename && (
+                <span className="text-xs font-mono text-grey-500">{originalFilename}</span>
+              )}
+              {parser && (
+                <span className="text-xs font-mono text-blue-400">Parser: {parser}</span>
+              )}
+              {loading && (
+                <span className="text-xs font-mono text-green-400">● Processing...</span>
+              )}
+              {success && (
+                <span className="text-xs font-mono text-green-400">✓ Completed</span>
+              )}
+              {error && (
+                <span className="text-xs font-mono text-red-400">✗ Failed</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+        <div className="w-full max-w-5xl">
         {/* Terminal Window */}
         <div className="bg-black border border-grey-700 shadow-2xl">
           {/* Terminal Title Bar */}
@@ -184,24 +279,30 @@ export default function ParseExecutionPage() {
           </div>
         </div>
 
-        {/* Action Buttons - Only show on error */}
-        {error && (
-          <div className="flex justify-center gap-4 mt-8">
-            <button
-              onClick={() => navigate(-1)}
-              className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
-            >
-              ← Go Back
-            </button>
-            <button
-              onClick={handleStartOver}
-              className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
-            >
-              Start Over
-            </button>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Bottom Action Bar - Only show on error */}
+      {error && (
+        <div className="w-full bg-black flex-shrink-0">
+          <div className="max-w-full mx-auto px-6 py-6">
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
+              >
+                ← Go Back
+              </button>
+              <button
+                onClick={handleStartOver}
+                className="py-3 px-6 text-grey-200 hover:bg-white hover:text-black transition-all duration-200 font-mono shiny-text"
+              >
+                Start Over
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
