@@ -64,7 +64,8 @@ class DocumentManager:
                 "processing_stages": {
                     "uploaded": True,
                     "extracted": False,
-                    "parsed": False
+                    "parsed": False,
+                    "saved": False
                 }
             }
             

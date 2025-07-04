@@ -5,7 +5,7 @@ import { commonStyles } from '../theme';
 interface LayoutProps {
   children: ReactNode;
   title?: string;
-  subtitle?: string;
+  subtitle?: string | ReactNode;
   rightNavItems?: ReactNode;
   fullViewport?: boolean;
 }

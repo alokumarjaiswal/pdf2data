@@ -5,18 +5,19 @@ import base64
 import os
 import tempfile
 import asyncio
+from datetime import datetime
 from pdf2image import convert_from_path
 from io import BytesIO
-from app.db.mongo import parsed_collection, documents_collection, extractions_collection, processing_logs_collection, gridfs_bucket, LogManager
+from app.db.mongo import parsed_collection, documents_collection, extractions_collection, processing_logs_collection, gridfs_bucket, LogManager, DocumentManager
 from app.utils.data_lifecycle import DataLifecycleManager
 
 router = APIRouter()
 
 @router.get("/api/list")
 async def get_parsed_documents_list():
-    """Get list of all parsed documents with enhanced metadata"""
+    """Get list of all saved (approved) parsed documents with enhanced metadata"""
     cursor = parsed_collection.find(
-        {}, 
+        {"saved": True},  # Only show saved/approved documents
         {
             "_id": 1, 
             "parser": 1, 
@@ -24,7 +25,9 @@ async def get_parsed_documents_list():
             "uploaded_at": 1,
             "extraction_mode_used": 1,
             "num_entries": 1,
-            "processing_completed": 1
+            "processing_completed": 1,
+            "saved": 1,
+            "saved_at": 1
         }
     )
     docs = await cursor.to_list(length=100)
@@ -152,6 +155,64 @@ async def get_parsed_data(file_id: str, request: Request):
         return Response(content=json_str, media_type="application/json; charset=utf-8")
     else:
         return JSONResponse(content=json.loads(json.dumps(doc, default=str)))
+
+@router.post("/api/save/{file_id}")
+async def save_parsed_document(file_id: str):
+    """Save a parsed document to make it visible in the List Page"""
+    try:
+        # Check if the document exists in parsed_collection
+        doc = await parsed_collection.find_one({"_id": file_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Parsed document not found")
+        
+        # Check if already saved
+        if doc.get("saved", False):
+            return {
+                "message": "Document already saved",
+                "file_id": file_id,
+                "saved": True,
+                "saved_at": doc.get("saved_at")
+            }
+        
+        # Update the document to mark it as saved
+        save_timestamp = datetime.utcnow()
+        
+        await parsed_collection.update_one(
+            {"_id": file_id},
+            {
+                "$set": {
+                    "saved": True,
+                    "saved_at": save_timestamp.isoformat()
+                }
+            }
+        )
+        
+        # Update document processing stage to include saved
+        await DocumentManager.update_processing_stage(file_id, "saved", True)
+        
+        # Log the save action
+        await LogManager.store_log(
+            file_id=file_id,
+            process_type="save",
+            log_content=f"Document saved and approved for listing: {doc.get('original_filename', 'Unknown.pdf')}",
+            metadata={
+                "parser": doc.get("parser"),
+                "num_entries": doc.get("num_entries", 0),
+                "saved_at": save_timestamp.isoformat()
+            }
+        )
+        
+        return {
+            "message": "Document saved successfully",
+            "file_id": file_id,
+            "saved": True,
+            "saved_at": save_timestamp.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving document: {str(e)}")
 
 @router.delete("/api/delete/{file_id}")
 async def delete_parsed_document(file_id: str):
@@ -488,3 +549,108 @@ async def get_page_preview(file_id: str, page_num: int):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error generating page preview: {str(e)}")
+
+@router.put("/api/update/{file_id}")
+async def update_parsed_document(file_id: str, request: Request):
+    """Update the parsed data for a specific document"""
+    try:
+        # Get the updated data from request body
+        updated_data = await request.json()
+        
+        # Check if the document exists in parsed_collection
+        existing_doc = await parsed_collection.find_one({"_id": file_id})
+        if not existing_doc:
+            raise HTTPException(status_code=404, detail="Parsed document not found")
+        
+        # Preserve essential metadata while updating the data
+        essential_fields = {
+            "_id": file_id,
+            "parser": existing_doc.get("parser"),
+            "original_filename": existing_doc.get("original_filename"),
+            "uploaded_at": existing_doc.get("uploaded_at"),
+            "extraction_mode_used": existing_doc.get("extraction_mode_used"),
+            "processing_completed": existing_doc.get("processing_completed"),
+            "saved": existing_doc.get("saved", False),
+            "saved_at": existing_doc.get("saved_at")
+        }
+        
+        # Merge updated data with essential fields
+        merged_data = {**updated_data, **essential_fields}
+        
+        # Update the document in the collection
+        update_timestamp = datetime.utcnow()
+        merged_data["last_modified"] = update_timestamp.isoformat()
+        
+        await parsed_collection.replace_one(
+            {"_id": file_id},
+            merged_data
+        )
+        
+        # Log the update action
+        await LogManager.store_log(
+            file_id=file_id,
+            process_type="update",
+            log_content=f"Document data updated: {existing_doc.get('original_filename', 'Unknown.pdf')}",
+            metadata={
+                "parser": existing_doc.get("parser"),
+                "modified_at": update_timestamp.isoformat(),
+                "updated_by": "user_edit"
+            }
+        )
+        
+        return {
+            "message": "Document updated successfully",
+            "file_id": file_id,
+            "last_modified": update_timestamp.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON in request body")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating document: {str(e)}")
+
+@router.get("/api/file/{file_id}")
+async def get_file(file_id: str):
+    """Serve PDF file for viewing"""
+    from fastapi.responses import FileResponse
+    import os
+    
+    try:
+        # Try to serve from local directory first
+        file_path = f"data/uploaded_pdfs/original_{file_id}.pdf"
+        if os.path.exists(file_path):
+            return FileResponse(
+                path=file_path,
+                media_type="application/pdf",
+                headers={"Content-Disposition": "inline"}
+            )
+        
+        # If not found locally, try to get from GridFS
+        doc = await documents_collection.find_one({"_id": file_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Get file from GridFS
+        try:
+            file_data = await gridfs_bucket.download_to_stream(file_id)
+            # Create a temporary file to serve
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+                temp_file.write(file_data.getvalue())
+                temp_path = temp_file.name
+            
+            return FileResponse(
+                path=temp_path,
+                media_type="application/pdf",
+                headers={"Content-Disposition": "inline"},
+                background=None  # Don't auto-delete the temp file
+            )
+        except Exception as gridfs_error:
+            raise HTTPException(status_code=404, detail="File not found in storage")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")

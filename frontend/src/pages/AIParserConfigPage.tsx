@@ -233,7 +233,7 @@ export default function AIParserConfigPage() {
               {/* Left Navigation */}
               <div className="flex items-center space-x-6">
                 <button
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate(`/parse?file_id=${fileId}`)}
                   className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
                 >
                   ← Back
@@ -273,7 +273,7 @@ export default function AIParserConfigPage() {
                 Extract Document First
               </button>
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/parse?file_id=${fileId}`)}
                 className="w-full px-6 py-3 bg-grey-700 hover:bg-grey-600 text-grey-300 rounded-lg transition-colors text-sm font-medium"
               >
                 Go Back
@@ -303,7 +303,7 @@ export default function AIParserConfigPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/parse?file_id=${fileId}`)}
                 className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
               >
                 ← Back

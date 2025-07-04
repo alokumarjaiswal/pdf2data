@@ -16,7 +16,10 @@ export const API_ENDPOINTS = {
   data: (fileId: string) => `${API_BASE_URL}/api/data/${fileId}`,
   dataWithPretty: (fileId: string) => `${API_BASE_URL}/api/data/${fileId}?pretty=1`,
   delete: (fileId: string) => `${API_BASE_URL}/api/delete/${fileId}`,
+  save: (fileId: string) => `${API_BASE_URL}/api/save/${fileId}`,
+  updateParsedData: (fileId: string) => `${API_BASE_URL}/api/update/${fileId}`,
   logs: (fileId: string) => `${API_BASE_URL}/api/logs/${fileId}`,
   stats: `${API_BASE_URL}/api/stats`,
   pagePreview: (fileId: string, pageNum: number) => `${API_BASE_URL}/api/page-preview/${fileId}/${pageNum}`,
+  file: (fileId: string) => `${API_BASE_URL}/api/file/${fileId}`,
 } as const; 

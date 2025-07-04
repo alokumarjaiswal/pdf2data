@@ -18,9 +18,10 @@ const parserStructures = {
         }
       ],
       "totals": {
+        "total_debit": "Total debit amount for the day",
+        "cash_in_hand": "Cash balance",
         "grand_total_credit": "Total credit amount",
         "grand_total_debit": "Total debit amount",
-        "cash_in_hand": "Cash balance"
       },
       "amount_in_words": "Amount written in words (Indian format)"
     },

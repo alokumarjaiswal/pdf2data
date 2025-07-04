@@ -105,7 +105,7 @@ export default function ParserPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/extract?file_id=${fileId}`)}
                 className="text-xs font-mono text-grey-500 hover:text-grey-300 transition-colors duration-200"
               >
                 ← Back

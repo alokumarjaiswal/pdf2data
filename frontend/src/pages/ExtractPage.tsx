@@ -267,7 +267,7 @@ export default function ExtractPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => !loading && navigate(-1)}
+                onClick={() => !loading && navigate('/')}
                 disabled={loading}
                 className={`text-xs font-mono transition-colors duration-200 ${
                   loading 

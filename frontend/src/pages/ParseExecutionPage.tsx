@@ -268,8 +268,12 @@ export default function ParseExecutionPage() {
       addLog("User requested cancellation...");
       abortControllerRef.current.abort();
     } else {
-      // If not loading, go back to previous page
-      navigate(-1);
+      // Navigate back to the appropriate page based on parser type
+      if (parser === 'AIParser') {
+        navigate(`/aiparser-config?file_id=${fileId}`);
+      } else {
+        navigate(`/structure-preview?file_id=${fileId}&parser=${parser}`);
+      }
     }
   };
 
@@ -287,7 +291,15 @@ export default function ParseExecutionPage() {
             {/* Left Navigation */}
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => !loading && navigate(-1)}
+                onClick={() => {
+                  if (!loading) {
+                    if (parser === 'AIParser') {
+                      navigate(`/aiparser-config?file_id=${fileId}`);
+                    } else {
+                      navigate(`/structure-preview?file_id=${fileId}&parser=${parser}`);
+                    }
+                  }
+                }}
                 disabled={loading}
                 className={`text-xs font-mono transition-colors duration-200 ${
                   loading 

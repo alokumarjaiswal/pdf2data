@@ -73,7 +73,8 @@ async def parse_text(
             "uploaded_at": datetime.utcnow().isoformat(),
             "extraction_mode_used": used_mode,
             "num_entries": len(parsed_output),
-            "processing_completed": True
+            "processing_completed": True,
+            "saved": False  # Requires manual approval via Save button
         }
         
         await parsed_collection.replace_one(
