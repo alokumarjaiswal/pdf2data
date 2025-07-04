@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import upload, extract, parse, api, mcp
+from app.routes import upload, extract, parse, api
 from app.db.mongo import init_database
-# from app.utils.smart_indexer import start_smart_indexing
 import logging
 
 # Setup logging
@@ -22,7 +21,6 @@ app.include_router(upload.router)
 app.include_router(extract.router)
 app.include_router(parse.router)
 app.include_router(api.router)
-app.include_router(mcp.router) # Include the new MCP router
 # Note: preview and list routes removed - functionality moved to React frontend
 
 app.add_middleware(
@@ -35,12 +33,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and smart indexing on application startup"""
+    """Initialize database on application startup"""
     try:
-        # Start smart indexing system (non-blocking, runs in background)
-        # logger.info("🚀 Starting smart code indexing system...")
-        # start_smart_indexing()
-
         await init_database()
         logger.info("✅ Database initialized successfully - All collections and indexes ready")
         logger.info("🗄️  Database-first architecture is now active - No filesystem dependencies")

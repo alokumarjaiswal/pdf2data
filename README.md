@@ -20,35 +20,10 @@ A comprehensive PDF extraction and parsing system with a modern web interface. U
 - **📈 Processing Analytics** - Detailed statistics and workflow tracking
 - **🛡️ Enhanced Security** - Validation, error handling, and audit trails
 - **🎨 Modern UI** - React-based interface with real-time updates
-- **🤖 AI Agent Integration** - MCP (Model Context Protocol) server for AI assistant context
-
-## 🤖 MCP Server for AI Agents
-
-PDF2Data includes a comprehensive **Model Context Protocol (MCP) server** that provides AI agents like GitHub Copilot with deep contextual information about the project:
-
-### Available Context Endpoints
-- **Project Structure** - Hierarchical view of codebase organization
-- **Semantic Search** - Vector-based code search using natural language
-- **Recent Changes** - Git history and recently modified files  
-- **Dependencies** - Project requirements and package information
-- **Database Schema** - MongoDB collection structures and relationships
-- **Configuration** - Application settings (sanitized for security)
-- **API Routes** - Complete overview of available endpoints
-- **Parser Registry** - Available parsing capabilities
-
-### Key Features
-- **🔍 Semantic Code Search** - Find relevant code using natural language queries
-- **🏗️ Smart Indexing** - AST-based chunking with real-time updates
-- **📊 Vector Database** - FAISS-powered similarity search
-- **🔄 Live Monitoring** - Real-time file change detection
-- **🔒 Security-First** - Sensitive information automatically redacted
-
-Access the MCP endpoints at `/mcp/*` when the server is running. See [MCP_SERVER_DOCS.md](./MCP_SERVER_DOCS.md) for complete documentation.
 
 ## 📋 Table of Contents
 
 - [Architecture Overview](#architecture-overview)
-- [MCP Server for AI Agents](#mcp-server-for-ai-agents)
 - [Installation & Setup](#installation--setup)
 - [API Documentation](#api-documentation)
 - [Frontend Guide](#frontend-guide)
