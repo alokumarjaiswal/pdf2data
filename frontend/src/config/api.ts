@@ -22,4 +22,5 @@ export const API_ENDPOINTS = {
   stats: `${API_BASE_URL}/api/stats`,
   pagePreview: (fileId: string, pageNum: number) => `${API_BASE_URL}/api/page-preview/${fileId}/${pageNum}`,
   file: (fileId: string) => `${API_BASE_URL}/api/file/${fileId}`,
+  extractedText: (fileId: string) => `${API_BASE_URL}/api/extracted-text/${fileId}`,
 } as const; 

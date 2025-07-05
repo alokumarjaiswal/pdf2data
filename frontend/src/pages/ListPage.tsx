@@ -158,23 +158,14 @@ export default function ListPage() {
             <div key={entry._id}>
               <div className="flex justify-between items-center text-xs">
                 <div className="text-grey-300">
-                  {entry.original_filename || "unknown.pdf"}
-                </div>
-                <div className="flex space-x-3 text-xs">
                   <a
                     href={`/preview/${entry._id}`}
-                    className="text-grey-500 hover:text-grey-300 transition-colors"
+                    className="hover:text-grey-100 transition-colors cursor-pointer"
                   >
-                    view
+                    {entry.original_filename || "unknown.pdf"}
                   </a>
-                  <a
-                    href={API_ENDPOINTS.dataWithPretty(entry._id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-grey-500 hover:text-grey-300 transition-colors"
-                  >
-                    json
-                  </a>
+                </div>
+                <div className="flex space-x-3 text-xs">
                   {deleteConfirm === entry._id ? (
                     <div className="flex space-x-2">
                       <button

@@ -233,7 +233,7 @@ export default function UploadPage() {
               onChange={handleFileSelect}
               disabled={uploading}
               className={`absolute inset-0 w-full h-full opacity-0 z-10 ${
-                uploading ? 'cursor-not-allowed' : 'cursor-pointer'
+                uploading ? '' : 'cursor-pointer'
               }`}
             />
           </div>

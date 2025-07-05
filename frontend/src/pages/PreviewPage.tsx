@@ -9,6 +9,31 @@ import DynamicDataEditor from "../components/DynamicDataEditor";
 // Use the BaseParsedData interface from registry
 type ParsedData = BaseParsedData;
 
+// Deep comparison function for change detection
+function deepEqual(obj1: any, obj2: any): boolean {
+  if (obj1 === obj2) return true;
+  
+  if (obj1 == null || obj2 == null) return obj1 === obj2;
+  
+  if (typeof obj1 !== typeof obj2) return false;
+  
+  if (typeof obj1 !== 'object') return obj1 === obj2;
+  
+  if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
+  
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  
+  if (keys1.length !== keys2.length) return false;
+  
+  for (let key of keys1) {
+    if (!keys2.includes(key)) return false;
+    if (!deepEqual(obj1[key], obj2[key])) return false;
+  }
+  
+  return true;
+}
+
 export default function PreviewPage() {
   const { fileId } = useParams();
   const navigate = useNavigate();
@@ -20,11 +45,13 @@ export default function PreviewPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedData, setEditedData] = useState<ParsedData | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showPDF, setShowPDF] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Track changes when editedData is modified
   useEffect(() => {
     if (isEditMode && editedData && data) {
-      const hasModifications = JSON.stringify(editedData) !== JSON.stringify(data);
+      const hasModifications = !deepEqual(editedData, data);
       setHasChanges(hasModifications);
     } else {
       setHasChanges(false);
@@ -85,11 +112,19 @@ export default function PreviewPage() {
         }
       }
       setIsEditMode(false);
+      setIsTransitioning(false);
     } else {
-      // Entering edit mode
-      setIsEditMode(true);
-      setEditedData(data ? { ...data } : null);
-      setHasChanges(false);
+      // Entering edit mode with transition spinner
+      setIsTransitioning(true);
+      
+      // Use setTimeout to allow spinner to show before heavy processing
+      setTimeout(() => {
+        setIsEditMode(true);
+        // Deep clone the data to prevent reference issues
+        setEditedData(data ? JSON.parse(JSON.stringify(data)) : null);
+        setHasChanges(false);
+        setIsTransitioning(false);
+      }, 50); // Small delay to ensure spinner renders
     }
   };
 
@@ -218,7 +253,30 @@ export default function PreviewPage() {
 
   return (
     <Layout 
-      title={data.original_filename}
+      fullViewport={showPDF} // Use full viewport when PDF is shown
+      title={
+        <div className="flex items-center gap-3">
+          <span>{data.original_filename}</span>
+          <button
+            onClick={() => setShowPDF(!showPDF)}
+            className={`flex items-center justify-center w-6 h-6 rounded transition-all duration-200 ${
+              showPDF 
+                ? 'text-grey-200 hover:text-grey-100 bg-grey-800 hover:bg-grey-700' 
+                : 'text-grey-500 hover:text-grey-300 hover:bg-grey-900'
+            }`}
+            title={showPDF ? 'Hide PDF' : 'Show PDF side-by-side'}
+          >
+            <svg 
+              className={`w-4 h-4 transition-transform duration-200 ${showPDF ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      }
       subtitle={
         <span className="flex items-center gap-2">
           {`Parsed with ${data.parser} • ${hasCustomPreview(data.parser) ? 'Custom Preview' : 'JSON Preview'} ${isSaved ? `• Saved ${data.saved_at ? new Date(data.saved_at).toLocaleString('en-US', {
@@ -258,7 +316,7 @@ export default function PreviewPage() {
                 className={`font-mono text-xs transition-colors duration-200 ${
                   hasChanges
                     ? 'text-grey-400 hover:text-grey-200 cursor-pointer'
-                    : 'text-grey-600 cursor-not-allowed'
+                    : 'text-grey-600'
                 }`}
               >
                 save changes
@@ -269,14 +327,14 @@ export default function PreviewPage() {
               >
                 cancel
               </button>
-              {/* View PDF Link */}
+              {/* View Raw Data Link */}
               <a
-                href={API_ENDPOINTS.file(data.file_id)}
+                href={API_ENDPOINTS.extractedText(data.file_id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-grey-400 hover:text-grey-200 font-mono text-xs transition-colors duration-200"
               >
-                view pdf →
+                view raw data →
               </a>
             </>
           ) : (
@@ -296,7 +354,7 @@ export default function PreviewPage() {
                   disabled={isSaving}
                   className={`text-xs font-mono transition-all duration-200 ${
                     isSaving
-                      ? 'text-grey-600 cursor-not-allowed'
+                      ? 'text-grey-600'
                       : 'text-grey-500 hover:text-grey-300 shiny-text'
                   }`}
                 >
@@ -318,29 +376,93 @@ export default function PreviewPage() {
         </div>
       }
     >
-      {/* Content - either editable or preview */}
-      {isEditMode ? (
-        data?.parser === 'DaybookParser' ? (
-          <EditableDataEditor
-            data={editedData}
-            onChange={setEditedData}
-            onSave={handleSaveEdits}
-          />
-        ) : (
-          <DynamicDataEditor
-            data={editedData}
-            onChange={setEditedData}
-            onSave={handleSaveEdits}
-          />
-        )
+      {/* Main Content Area - Responsive Layout */}
+      {showPDF ? (
+        /* Side-by-side view with independent scrolling - Full Viewport */
+        <div className="flex gap-6 h-full px-6">
+          {/* Data Content - Scrollable Container */}
+          <div className="flex-1 min-w-0 overflow-auto">
+            <div className="h-full py-6">
+              {isTransitioning ? (
+                /* Transition Spinner */
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin w-6 h-6 border border-grey-500 border-t-grey-200 rounded-full mx-auto mb-2"></div>
+                    <div className="text-grey-400 font-mono text-xs">Loading editor...</div>
+                  </div>
+                </div>
+              ) : isEditMode ? (
+                data?.parser === 'DaybookParser' ? (
+                  <EditableDataEditor
+                    data={editedData}
+                    onChange={setEditedData}
+                    onSave={handleSaveEdits}
+                  />
+                ) : (
+                  <DynamicDataEditor
+                    data={editedData}
+                    onChange={setEditedData}
+                    onSave={handleSaveEdits}
+                  />
+                )
+              ) : (
+                displayData && (
+                  <PreviewComponent
+                    data={displayData}
+                    originalFilename={data.original_filename}
+                    fileId={data.file_id}
+                  />
+                )
+              )}
+            </div>
+          </div>
+
+          {/* PDF Viewer - Scrollable Container */}
+          <div className="flex-1 min-w-0 transition-all duration-300 py-6">
+            <div className="h-full border border-grey-800 rounded-lg overflow-hidden bg-grey-950">
+              <iframe
+                src={API_ENDPOINTS.file(data.file_id)}
+                className="w-full h-full border-0"
+                title="Original PDF"
+              />
+            </div>
+          </div>
+        </div>
       ) : (
-        displayData && (
-          <PreviewComponent
-            data={displayData}
-            originalFilename={data.original_filename}
-            fileId={data.file_id}
-          />
-        )
+        /* Full-width view - normal scrolling */
+        <div className="w-full">
+          {isTransitioning ? (
+            /* Transition Spinner */
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin w-6 h-6 border border-grey-500 border-t-grey-200 rounded-full mx-auto mb-2"></div>
+                <div className="text-grey-400 font-mono text-xs">Loading editor...</div>
+              </div>
+            </div>
+          ) : isEditMode ? (
+            data?.parser === 'DaybookParser' ? (
+              <EditableDataEditor
+                data={editedData}
+                onChange={setEditedData}
+                onSave={handleSaveEdits}
+              />
+            ) : (
+              <DynamicDataEditor
+                data={editedData}
+                onChange={setEditedData}
+                onSave={handleSaveEdits}
+              />
+            )
+          ) : (
+            displayData && (
+              <PreviewComponent
+                data={displayData}
+                originalFilename={data.original_filename}
+                fileId={data.file_id}
+              />
+            )
+          )}
+        </div>
       )}
     </Layout>
   );

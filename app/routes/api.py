@@ -654,3 +654,27 @@ async def get_file(file_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")
+
+@router.get("/api/extracted-text/{file_id}")
+async def get_extracted_text(file_id: str):
+    """Serve extracted text file for viewing"""
+    from fastapi.responses import PlainTextResponse
+    import os
+    
+    try:
+        # Look for the extracted text file
+        file_path = f"data/extracted_pages/extracted_digital_{file_id}.txt"
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return PlainTextResponse(
+                content=content,
+                headers={"Content-Disposition": "inline"}
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Extracted text not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving extracted text: {str(e)}")

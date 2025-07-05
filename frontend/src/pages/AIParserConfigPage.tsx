@@ -425,7 +425,7 @@ export default function AIParserConfigPage() {
                       <button
                         onClick={() => handlePageChange(pageNum - 1)}
                         disabled={pageNum <= 1}
-                        className="p-2 text-grey-400 hover:text-grey-200 hover:bg-grey-700/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 rounded-lg"
+                        className="p-2 text-grey-400 hover:text-grey-200 hover:bg-grey-700/40 disabled:opacity-30 transition-all duration-200 rounded-lg"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -465,7 +465,7 @@ export default function AIParserConfigPage() {
                       <button
                         onClick={() => handlePageChange(pageNum + 1)}
                         disabled={pageNum >= totalPages}
-                        className="p-2 text-grey-400 hover:text-grey-200 hover:bg-grey-700/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 rounded-lg"
+                        className="p-2 text-grey-400 hover:text-grey-200 hover:bg-grey-700/40 disabled:opacity-30 transition-all duration-200 rounded-lg"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -498,7 +498,7 @@ export default function AIParserConfigPage() {
               disabled={!fileId || isValidating || !validateJsonSchema(schema) || !prompt.trim()}
               className={`group relative py-3 px-6 transition-all duration-200 font-mono shiny-text ${
                 !fileId || isValidating || !validateJsonSchema(schema) || !prompt.trim()
-                  ? 'text-grey-500 cursor-not-allowed opacity-50'
+                  ? 'text-grey-500 opacity-50'
                   : 'text-grey-200 hover:bg-white hover:text-black cursor-pointer'
               }`}
             >

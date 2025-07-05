@@ -415,7 +415,7 @@ const EditableTable: React.FC<EditableTableProps> = ({ data, onChange }) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={table.totals?.grand_total_credit || 0}
+                  value={table.totals?.grand_total_credit?.toFixed(2) || '0.00'}
                   onChange={(e) => handleTotalEdit(tableIndex, 'grand_total_credit', e.target.value)}
                   className="w-full p-2 bg-grey-800 border border-grey-700 text-grey-200 text-sm rounded focus:border-grey-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -427,7 +427,7 @@ const EditableTable: React.FC<EditableTableProps> = ({ data, onChange }) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={table.totals?.total_debit || 0}
+                  value={table.totals?.total_debit?.toFixed(2) || '0.00'}
                   onChange={(e) => handleTotalEdit(tableIndex, 'total_debit', e.target.value)}
                   className="w-full p-2 bg-grey-800 border border-grey-700 text-grey-200 text-sm rounded focus:border-grey-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -439,7 +439,7 @@ const EditableTable: React.FC<EditableTableProps> = ({ data, onChange }) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={table.totals?.grand_total_debit || 0}
+                  value={table.totals?.grand_total_debit?.toFixed(2) || '0.00'}
                   onChange={(e) => handleTotalEdit(tableIndex, 'grand_total_debit', e.target.value)}
                   className="w-full p-2 bg-grey-800 border border-grey-700 text-grey-200 text-sm rounded focus:border-grey-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />

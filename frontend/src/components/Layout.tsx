@@ -4,7 +4,7 @@ import { commonStyles } from '../theme';
 
 interface LayoutProps {
   children: ReactNode;
-  title?: string;
+  title?: string | ReactNode;
   subtitle?: string | ReactNode;
   rightNavItems?: ReactNode;
   fullViewport?: boolean;
@@ -68,7 +68,7 @@ export default function Layout({ children, title, subtitle, rightNavItems, fullV
               <div className="max-w-4xl mx-auto px-6 py-6">
                 <div className="mb-8">
                   {title && (
-                    <h1 className="text-lg font-medium text-grey-200 mb-1 shiny-text">
+                    <h1 className="text-lg font-medium text-grey-200 mb-1 shiny-text flex items-center">
                       {title}
                     </h1>
                   )}
@@ -90,7 +90,7 @@ export default function Layout({ children, title, subtitle, rightNavItems, fullV
               {(title || subtitle) && (
                 <div className="mb-8">
                   {title && (
-                    <h1 className="text-lg font-medium text-grey-200 mb-1 shiny-text">
+                    <h1 className="text-lg font-medium text-grey-200 mb-1 shiny-text flex items-center">
                       {title}
                     </h1>
                   )}

@@ -303,7 +303,7 @@ export default function ParseExecutionPage() {
                 disabled={loading}
                 className={`text-xs font-mono transition-colors duration-200 ${
                   loading 
-                    ? 'text-grey-600 cursor-not-allowed' 
+                    ? 'text-grey-600' 
                     : 'text-grey-500 hover:text-grey-300'
                 }`}
               >

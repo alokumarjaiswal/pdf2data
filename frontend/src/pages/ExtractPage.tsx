@@ -271,7 +271,7 @@ export default function ExtractPage() {
                 disabled={loading}
                 className={`text-xs font-mono transition-colors duration-200 ${
                   loading 
-                    ? 'text-grey-600 cursor-not-allowed' 
+                    ? 'text-grey-600' 
                     : 'text-grey-500 hover:text-grey-300'
                 }`}
               >
@@ -317,7 +317,7 @@ export default function ExtractPage() {
                     />
                     <div className={`p-6 border transition-all duration-200 h-96 flex flex-col ${
                       loading 
-                        ? 'opacity-50 cursor-not-allowed border-grey-800'
+                        ? 'opacity-50 border-grey-800'
                         : mode === extractionMode.id
                         ? 'border-grey-600 bg-grey-900 bg-opacity-30'
                         : 'border-grey-800 hover:border-grey-700 hover:bg-grey-900 hover:bg-opacity-20'
@@ -378,7 +378,7 @@ export default function ExtractPage() {
                 disabled={loading || !mode}
                 className={`text-lg py-4 px-8 transition-all duration-200 shiny-text-strong ${
                   loading || !mode
-                    ? 'text-grey-500 cursor-not-allowed opacity-50'
+                    ? 'text-grey-500 opacity-50'
                     : 'text-grey-200 hover:bg-white hover:text-black cursor-pointer'
                 }`}
               >
