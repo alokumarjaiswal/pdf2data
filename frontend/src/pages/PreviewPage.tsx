@@ -4,6 +4,7 @@ import { getPreviewComponent, hasCustomPreview, BaseParsedData } from "../compon
 import Layout from "../components/Layout";
 import { API_ENDPOINTS } from "../config/api";
 import EditableDataEditor from "../components/EditableDataEditor";
+import DynamicDataEditor from "../components/DynamicDataEditor";
 
 // Use the BaseParsedData interface from registry
 type ParsedData = BaseParsedData;
@@ -319,11 +320,19 @@ export default function PreviewPage() {
     >
       {/* Content - either editable or preview */}
       {isEditMode ? (
-        <EditableDataEditor
-          data={editedData}
-          onChange={setEditedData}
-          onSave={handleSaveEdits}
-        />
+        data?.parser === 'DaybookParser' ? (
+          <EditableDataEditor
+            data={editedData}
+            onChange={setEditedData}
+            onSave={handleSaveEdits}
+          />
+        ) : (
+          <DynamicDataEditor
+            data={editedData}
+            onChange={setEditedData}
+            onSave={handleSaveEdits}
+          />
+        )
       ) : (
         displayData && (
           <PreviewComponent
