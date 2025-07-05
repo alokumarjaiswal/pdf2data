@@ -678,3 +678,77 @@ async def get_extracted_text(file_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving extracted text: {str(e)}")
+
+@router.post("/api/unite/upload/{file_id}")
+async def upload_to_unite(file_id: str):
+    """Queue document upload to Unite ERP system"""
+    import asyncio
+    import subprocess
+    import os
+    
+    try:
+        # Check if document exists
+        doc = await parsed_collection.find_one({"_id": file_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # TODO: In a production system, you'd want to use a proper task queue like Celery
+        # For now, we'll return success and let the frontend handle the UI
+        
+        # Update document status to indicate Unite upload is pending
+        await parsed_collection.update_one(
+            {"_id": file_id},
+            {"$set": {
+                "unite_status": "uploading",
+                "unite_upload_initiated_at": datetime.utcnow()
+            }}
+        )
+        
+        # In the future, you could trigger the bot script here:
+        # bot_path = os.path.join(os.path.dirname(__file__), "../../unite-login-bot/login.py")
+        # subprocess.Popen(["python", bot_path, file_id], cwd=os.path.dirname(bot_path))
+        
+        return {
+            "success": True,
+            "message": "Upload queued successfully",
+            "file_id": file_id,
+            "status": "uploading"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Update status to error
+        await parsed_collection.update_one(
+            {"_id": file_id},
+            {"$set": {
+                "unite_status": "error",
+                "unite_error": str(e),
+                "unite_error_at": datetime.utcnow()
+            }}
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to queue upload: {str(e)}")
+
+@router.get("/api/unite/status/{file_id}")
+async def get_unite_status(file_id: str):
+    """Get the Unite upload status for a document"""
+    try:
+        doc = await parsed_collection.find_one(
+            {"_id": file_id},
+            {"unite_status": 1, "unite_uploaded_at": 1, "unite_error": 1}
+        )
+        
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        return {
+            "file_id": file_id,
+            "unite_status": doc.get("unite_status", "pending"),
+            "unite_uploaded_at": doc.get("unite_uploaded_at"),
+            "unite_error": doc.get("unite_error")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")

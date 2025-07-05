@@ -7,6 +7,8 @@ type ParsedEntry = {
   parser: string;
   original_filename?: string;
   uploaded_at?: string;
+  unite_status?: 'pending' | 'uploading' | 'success' | 'error';
+  unite_uploaded_at?: string;
 };
 
 export default function ListPage() {
@@ -15,6 +17,7 @@ export default function ListPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   const fetchList = async () => {
     try {
@@ -58,6 +61,49 @@ export default function ListPage() {
       setError(err instanceof Error ? err.message : "Failed to delete document");
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleUniteUpload = async (fileId: string) => {
+    if (uploading === fileId) {
+      return;
+    }
+    
+    setUploading(fileId);
+    
+    try {
+      const res = await fetch(API_ENDPOINTS.uniteUpload(fileId), {
+        method: "POST",
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const result = await res.json();
+      
+      // Update the entry status
+      setEntries(prev => prev.map(entry => 
+        entry._id === fileId 
+          ? { ...entry, unite_status: 'uploading' as const }
+          : entry
+      ));
+      
+      // You could implement polling here to check status
+      // For now, we'll just show it as uploading
+      
+    } catch (err) {
+      console.error("Failed to upload to Unite", err);
+      setError(err instanceof Error ? err.message : "Failed to upload to Unite");
+      
+      // Update entry to show error
+      setEntries(prev => prev.map(entry => 
+        entry._id === fileId 
+          ? { ...entry, unite_status: 'error' as const }
+          : entry
+      ));
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -166,6 +212,32 @@ export default function ListPage() {
                   </a>
                 </div>
                 <div className="flex space-x-3 text-xs">
+                  {/* Unite Upload Button */}
+                  <button
+                    onClick={() => handleUniteUpload(entry._id)}
+                    disabled={uploading === entry._id || entry.unite_status === 'uploading' || entry.unite_status === 'success'}
+                    className={`transition-colors ${
+                      entry.unite_status === 'success'
+                        ? 'text-green-400'
+                        : entry.unite_status === 'error'
+                        ? 'text-red-400 hover:text-red-300'
+                        : entry.unite_status === 'uploading' || uploading === entry._id
+                        ? 'text-grey-600'
+                        : 'text-blue-400 hover:text-blue-300'
+                    }`}
+                    title={
+                      entry.unite_status === 'success' ? 'Uploaded to Unite' :
+                      entry.unite_status === 'error' ? 'Upload failed - click to retry' :
+                      entry.unite_status === 'uploading' ? 'Uploading...' :
+                      'Upload to Unite ERP'
+                    }
+                  >
+                    {entry.unite_status === 'success' ? '✓ unite' :
+                     entry.unite_status === 'error' ? '✗ unite' :
+                     entry.unite_status === 'uploading' || uploading === entry._id ? '⟳ unite' :
+                     '↑ unite'}
+                  </button>
+                  
                   {deleteConfirm === entry._id ? (
                     <div className="flex space-x-2">
                       <button

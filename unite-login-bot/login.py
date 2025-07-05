@@ -3,11 +3,23 @@ from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
 import time
 import re
+import os
+from dotenv import load_dotenv
 
-# 🔐 Credentials
-USERNAME = "CEO91271202063001"
-PASSWORD = "P030360ERP7329"
-MAX_ATTEMPTS = 3
+# Load environment variables from parent directory
+load_dotenv(dotenv_path="../.env")
+
+# 🔐 Credentials from environment
+USERNAME = os.getenv('UNITE_USERNAME')
+PASSWORD = os.getenv('UNITE_PASSWORD')
+BASE_URL = os.getenv('UNITE_BASE_URL', 'https://pn.uniteerp.in/')
+MAX_ATTEMPTS = int(os.getenv('UNITE_MAX_ATTEMPTS', '3'))
+
+# Validate that required credentials are present
+if not USERNAME or not PASSWORD:
+    raise ValueError("Missing required environment variables: UNITE_USERNAME and/or UNITE_PASSWORD")
+
+print(f"🔐 Loaded credentials for user: {USERNAME[:8]}***")
 
 # 🎨 Image Preprocessing
 def preprocess_captcha(img):
@@ -82,7 +94,7 @@ def run():
         page = context.new_page()
 
         print("🔗 Navigating to login page...")
-        page.goto("https://pn.uniteerp.in/")
+        page.goto(BASE_URL)
         time.sleep(3)
 
         if is_logged_in(page):
