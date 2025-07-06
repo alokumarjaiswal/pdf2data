@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { commonStyles } from '../theme';
+import IntensityToggle from './IntensityToggle';
 
 interface LayoutProps {
   children: ReactNode;
@@ -49,11 +50,10 @@ export default function Layout({ children, title, subtitle, rightNavItems, fullV
             </div>
             
             {/* Right Navigation */}
-            {rightNavItems && (
-              <div className="flex space-x-6">
-                {rightNavItems}
-              </div>
-            )}
+            <div className="flex space-x-6 items-center">
+              <IntensityToggle />
+              {rightNavItems && rightNavItems}
+            </div>
           </div>
         </div>
       </div>

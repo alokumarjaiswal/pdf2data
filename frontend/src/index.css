@@ -5,7 +5,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global typography and minimal styling with shiny effects */
+/* Intensity Mode CSS Variables */
+:root {
+  /* Default to Stealth Mode */
+  --theme-background: #000000;
+  --theme-surface: #202020;
+  --theme-border: #404040;
+  --theme-text: #ffffff;
+  --theme-text-secondary: #f0f0f0;
+  --theme-text-muted: #d0d0d0;
+  --theme-shine-intensity: 1;
+}
+
+/* Stealth Mode (Maximum Intensity) */
+[data-theme="stealth"] {
+  --theme-background: #000000;
+  --theme-surface: #202020;
+  --theme-border: #404040;
+  --theme-text: #ffffff;
+  --theme-text-secondary: #f0f0f0;
+  --theme-text-muted: #d0d0d0;
+  --theme-shine-intensity: 1;
+}
+
+/* Comfort Mode (Balanced) */
+[data-theme="comfort"] {
+  --theme-background: #0a0a0a;
+  --theme-surface: #252525;
+  --theme-border: #454545;
+  --theme-text: #f5f5f5;
+  --theme-text-secondary: #e5e5e5;
+  --theme-text-muted: #c5c5c5;
+  --theme-shine-intensity: 0.7;
+}
+
+/* Ambient Mode (Soft) */
+[data-theme="ambient"] {
+  --theme-background: #141414;
+  --theme-surface: #2a2a2a;
+  --theme-border: #4a4a4a;
+  --theme-text: #f0f0f0;
+  --theme-text-secondary: #e0e0e0;
+  --theme-text-muted: #c0c0c0;
+  --theme-shine-intensity: 0.5;
+}
+
+/* Global typography and minimal styling with adaptive shiny effects */
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -15,27 +60,30 @@
   }
   
   body {
-    background-color: #000000;
-    color: #ffffff;
+    background-color: var(--theme-background);
+    color: var(--theme-text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     line-height: 1.5;
     margin: 0;
     height: 100vh;
     overflow-x: hidden;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 calc(4px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.1 * var(--theme-shine-intensity)));
+    transition: background-color 0.3s ease, color 0.3s ease, text-shadow 0.3s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
-    color: #ffffff;
+    color: var(--theme-text);
     letter-spacing: -0.025em;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 calc(8px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.3 * var(--theme-shine-intensity)));
+    transition: color 0.3s ease, text-shadow 0.3s ease;
   }
 
   p {
-    color: #e8e8e8;
+    color: var(--theme-text-secondary);
     line-height: 1.6;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+    text-shadow: 0 0 calc(4px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.15 * var(--theme-shine-intensity)));
+    transition: color 0.3s ease, text-shadow 0.3s ease;
   }
   
   /* Make all text elements slightly shiny by default */
@@ -43,8 +91,9 @@
     text-shadow: inherit;
   }
   
-  /* Enhanced shine for interactive elements */
+  /* Enhanced shine for interactive elements with intensity adaptation */
   button, a, input, label {
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 calc(6px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.2 * var(--theme-shine-intensity)));
+    transition: text-shadow 0.3s ease;
   }
 }

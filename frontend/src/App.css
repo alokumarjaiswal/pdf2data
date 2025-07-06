@@ -5,14 +5,60 @@
   padding: 0;
 }
 
+/* Intensity Mode CSS Variables */
+:root {
+  /* Default to Stealth Mode */
+  --theme-background: #000000;
+  --theme-surface: #202020;
+  --theme-border: #404040;
+  --theme-text: #ffffff;
+  --theme-text-secondary: #f0f0f0;
+  --theme-text-muted: #d0d0d0;
+  --theme-shine-intensity: 1;
+}
+
+/* Stealth Mode (Maximum Intensity) */
+[data-theme="stealth"] {
+  --theme-background: #000000;
+  --theme-surface: #202020;
+  --theme-border: #404040;
+  --theme-text: #ffffff;
+  --theme-text-secondary: #f0f0f0;
+  --theme-text-muted: #d0d0d0;
+  --theme-shine-intensity: 1;
+}
+
+/* Comfort Mode (Balanced) */
+[data-theme="comfort"] {
+  --theme-background: #0a0a0a;
+  --theme-surface: #252525;
+  --theme-border: #454545;
+  --theme-text: #f5f5f5;
+  --theme-text-secondary: #e5e5e5;
+  --theme-text-muted: #c5c5c5;
+  --theme-shine-intensity: 0.7;
+}
+
+/* Ambient Mode (Soft) */
+[data-theme="ambient"] {
+  --theme-background: #141414;
+  --theme-surface: #2a2a2a;
+  --theme-border: #4a4a4a;
+  --theme-text: #f0f0f0;
+  --theme-text-secondary: #e0e0e0;
+  --theme-text-muted: #c0c0c0;
+  --theme-shine-intensity: 0.5;
+}
+
 html, body {
   height: 100%;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--theme-background);
+  color: var(--theme-text);
   line-height: 1.5;
   font-size: 16px;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -84,27 +130,32 @@ a:hover {
   color: #ffffff;
 }
 
-/* Shiny Text Effects */
+/* Shiny Text Effects with Adaptive Intensity */
 .shiny-text {
   color: #ffffff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 calc(8px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.4 * var(--theme-shine-intensity))), 
+               0 0 calc(12px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.2 * var(--theme-shine-intensity)));
   background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 25%, #c0c0c0 50%, #e8e8e8 75%, #ffffff 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-size: 300% 300%;
-  animation: shiny-shimmer 2s ease-in-out infinite;
+  animation: shiny-shimmer calc(2s / var(--theme-shine-intensity)) ease-in-out infinite;
+  transition: text-shadow 0.3s ease;
 }
 
 .shiny-text-strong {
   color: #ffffff;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 0 18px rgba(255, 255, 255, 0.4), 0 0 24px rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 calc(12px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.6 * var(--theme-shine-intensity))), 
+               0 0 calc(18px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.4 * var(--theme-shine-intensity))), 
+               0 0 calc(24px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.2 * var(--theme-shine-intensity)));
   background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 15%, #e8e8e8 30%, #d4d4d4 45%, #e8e8e8 60%, #f8f8f8 85%, #ffffff 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-size: 400% 400%;
-  animation: shiny-shimmer-strong 3s ease-in-out infinite;
+  animation: shiny-shimmer-strong calc(3s / var(--theme-shine-intensity)) ease-in-out infinite;
+  transition: text-shadow 0.3s ease;
 }
 
 @keyframes shiny-shimmer {
@@ -141,12 +192,15 @@ a:hover {
 @supports not (-webkit-background-clip: text) {
   .shiny-text {
     color: #ffffff;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 calc(10px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.5 * var(--theme-shine-intensity))), 
+                 0 0 calc(15px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.3 * var(--theme-shine-intensity)));
   }
   
   .shiny-text-strong {
     color: #ffffff;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 calc(15px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.7 * var(--theme-shine-intensity))), 
+                 0 0 calc(20px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.5 * var(--theme-shine-intensity))), 
+                 0 0 calc(25px * var(--theme-shine-intensity)) rgba(255, 255, 255, calc(0.3 * var(--theme-shine-intensity)));
   }
 }
 

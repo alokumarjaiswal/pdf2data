@@ -112,16 +112,16 @@ export default function ParseExecutionPage() {
     // Create abort controller for this request
     abortControllerRef.current = new AbortController();
 
-    // Set up timeout (30 seconds for most parsers, 120 seconds for AI parser)
-    const timeoutDuration = parser === 'AIParser' ? 120000 : 30000;
+    // Set up timeout (30 seconds for most parsers, 120 seconds for AI parser, 90 seconds for DaybookParser)
+    const timeoutDuration = parser === 'AIParser' ? 120000 : 
+                           parser === 'DaybookParser' ? 90000 : 30000;
     const timeout = setTimeout(() => {
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        addLog("✗ ERROR: Request timed out");
-        addLog(`✗ Parser took longer than ${timeoutDuration / 1000} seconds`);
-        addLog("✗ Process terminated due to timeout");
-        setError(`Parsing timed out after ${timeoutDuration / 1000} seconds. The parser may be overloaded or there might be an issue with the document.`);
-        setLoading(false);
+        addLog("⚠ Request timed out, but parsing may still be running...");
+        addLog("⚠ Checking if parsing completed successfully...");
+        
+        // Don't abort immediately, check if parsing completed
+        checkParsingStatus();
       }
     }, timeoutDuration);
     
@@ -245,6 +245,79 @@ export default function ParseExecutionPage() {
         clearTimeout(timeoutId);
         setTimeoutId(null);
       }
+    }
+  };
+
+  // Function to check if parsing completed successfully after timeout
+  const checkParsingStatus = async () => {
+    if (!fileId) return;
+
+    // Define timeoutDuration here as in executeParsing
+    const timeoutDuration = parser === 'AIParser' ? 120000 : 
+                            parser === 'DaybookParser' ? 90000 : 30000;
+    
+    try {
+      addLog("🔍 Checking parsing status...");
+      const response = await fetch(API_ENDPOINTS.data(fileId));
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Check if we have parsed data
+        if (data.tables && data.tables.length > 0) {
+          addLog("✅ Parsing completed successfully!");
+          addLog(`✅ Found ${data.tables.length} tables with parsed data`);
+          addLog("✅ Data saved to database");
+          addLog("✅ Process completed!");
+          
+          setSuccess(true);
+          setLoading(false);
+          
+          // Clear timeout
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            setTimeoutId(null);
+          }
+          
+          // Show redirect command
+          setTimeout(() => {
+            addLog("cd ../preview && ./open_results.sh", true);
+            addLog("Redirecting to results...");
+            
+            setTimeout(() => {
+              navigate(`/preview/${fileId}`);
+            }, 1000);
+          }, 500);
+          
+          return;
+        }
+      }
+      
+      // If we get here, parsing hasn't completed successfully
+      addLog("✗ Parsing did not complete successfully");
+      addLog(`✗ Parser took longer than ${timeoutDuration / 1000} seconds`);
+      addLog("✗ Process terminated due to timeout");
+      
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
+      setError(`Parsing timed out after ${timeoutDuration / 1000} seconds. The document may be too large or complex for this parser.`);
+      setLoading(false);
+      
+    } catch (err) {
+      addLog("✗ Error checking parsing status");
+      addLog(`✗ Parser took longer than ${timeoutDuration / 1000} seconds`);
+      addLog("✗ Process terminated due to timeout");
+      
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
+      setError(`Parsing timed out after ${timeoutDuration / 1000} seconds. The parser may be overloaded or there might be an issue with the document.`);
+      setLoading(false);
     }
   };
 
@@ -404,4 +477,4 @@ export default function ParseExecutionPage() {
 
     </div>
   );
-} 
+}

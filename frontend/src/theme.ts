@@ -1,4 +1,4 @@
-// Minimal Professional Theme - Pitch Black & Shiny Grey
+// Minimal Professional Theme - Pitch Black & Shiny Grey with Intensity Modes
 export const theme = {
   colors: {
     // Core theme colors - Only pitch black and shiny grey
@@ -13,6 +13,34 @@ export const theme = {
       700: '#808080', // Darker grey
       800: '#606060', // Very dark grey
       900: '#303030'  // Near black grey (brighter than before)
+    },
+    
+    // Intensity mode variations
+    modes: {
+      stealth: {
+        background: '#000000',
+        surface: '#202020',
+        border: '#404040',
+        text: '#ffffff',
+        textSecondary: '#f0f0f0',
+        textMuted: '#d0d0d0'
+      },
+      comfort: {
+        background: '#0a0a0a',
+        surface: '#252525',
+        border: '#454545',
+        text: '#f5f5f5',
+        textSecondary: '#e5e5e5',
+        textMuted: '#c5c5c5'
+      },
+      ambient: {
+        background: '#141414',
+        surface: '#2a2a2a',
+        border: '#4a4a4a',
+        text: '#f0f0f0',
+        textSecondary: '#e0e0e0',
+        textMuted: '#c0c0c0'
+      }
     },
     
     // Functional colors (minimal variants)
