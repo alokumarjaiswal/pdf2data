@@ -47,6 +47,7 @@ export default function PreviewPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Track changes when editedData is modified
   useEffect(() => {
@@ -258,7 +259,13 @@ export default function PreviewPage() {
         <div className="flex items-center gap-3">
           <span>{data.original_filename}</span>
           <button
-            onClick={() => setShowPDF(!showPDF)}
+            onClick={() => {
+              // Start PDF loading when toggling to show
+              if (!showPDF) {
+                setPdfLoading(true);
+              }
+              setShowPDF(!showPDF);
+            }}
             className={`flex items-center justify-center w-6 h-6 rounded transition-all duration-200 ${
               showPDF 
                 ? 'text-grey-200 hover:text-grey-100 bg-grey-800 hover:bg-grey-700' 
@@ -272,7 +279,22 @@ export default function PreviewPage() {
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              {pdfLoading && !showPDF ? (
+                /* Loading spinner when PDF is loading */
+                <circle 
+                  cx="12" 
+                  cy="12" 
+                  r="10" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  fill="none" 
+                  strokeDasharray="31.416" 
+                  strokeDashoffset="31.416"
+                  className="animate-spin"
+                />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              )}
             </svg>
           </button>
         </div>
@@ -419,11 +441,23 @@ export default function PreviewPage() {
 
           {/* PDF Viewer - Scrollable Container */}
           <div className="flex-1 min-w-0 transition-all duration-300 py-6">
-            <div className="h-full border border-grey-800 rounded-lg overflow-hidden bg-grey-950">
+            <div className="h-full border border-grey-800 rounded-lg overflow-hidden bg-grey-950 relative">
+              {/* PDF Loading Overlay */}
+              {pdfLoading && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
+                  <div className="text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-grey-500 border-t-grey-200 rounded-full mx-auto mb-3"></div>
+                    <div className="text-grey-300 font-mono text-sm mb-1">Loading PDF...</div>
+                    <div className="text-grey-500 font-mono text-xs">Large files may take a moment</div>
+                  </div>
+                </div>
+              )}
               <iframe
                 src={API_ENDPOINTS.file(data.file_id)}
                 className="w-full h-full border-0"
                 title="Original PDF"
+                onLoad={() => setPdfLoading(false)}
+                onError={() => setPdfLoading(false)}
               />
             </div>
           </div>

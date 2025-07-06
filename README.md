@@ -17,6 +17,7 @@ A comprehensive PDF extraction, parsing, and ERP integration system with a moder
 - **📝 Full CRUD Editing** - Schema-aware, minimal UI table editor for parsed data
 - **🔄 Side-by-Side PDF Viewer** - Independent scrolling, responsive layout
 - **🗃️ Hybrid Storage Strategy** - MongoDB + filesystem caching for performance
+- **📊 Excel Export** - Professional formatted Excel files from parsed data
 
 ### ERP Integration
 - **🤖 Unite Login Bot** - Automated ERP login with CAPTCHA solving
@@ -30,6 +31,8 @@ A comprehensive PDF extraction, parsing, and ERP integration system with a moder
 - **📈 Processing Analytics** - Detailed statistics and workflow tracking
 - **🛡️ Enhanced Security** - Environment variables, validation, audit trails
 - **🎨 Modern UI** - React-based interface with minimal, professional design
+- **🌙 Intensity Mode** - Dark/light theme toggle with morphing circle animation
+- **⚡ Robust Error Handling** - Non-blocking errors with auto-recovery
 
 ## 📋 Table of Contents
 
@@ -211,6 +214,7 @@ cd frontend && npm run dev
 - **Auto-Save**: Changes tracked with explicit save controls
 
 ### 5. Integration Phase
+- **Excel Export**: Download professionally formatted Excel files with one click
 - **One-Click Upload**: Direct to Unite ERP from List Page
 - **Status Tracking**: Visual indicators for upload progress
 - **Error Recovery**: Retry failed uploads with detailed logging
@@ -229,12 +233,12 @@ cd frontend && npm run dev
 
 1. **Configure Credentials** in `.env` file
 2. **Navigate to List Page** in the application
-3. **Click "↑ unite" button** next to any processed document
+3. **Click "↑" button** next to any processed document
 4. **Monitor Status**: 
-   - `↑ unite` - Ready to upload
-   - `⟳ unite` - Currently uploading
-   - `✓ unite` - Successfully uploaded
-   - `✗ unite` - Upload failed (click to retry)
+   - `↑` - Ready to upload
+   - `⟳` - Currently uploading
+   - `✓` - Successfully uploaded
+   - `✗` - Upload failed (click to retry)
 
 ### Current Status
 
@@ -265,7 +269,8 @@ GET  /api/file/{file_id}         # Serve original PDF
 GET  /api/extracted-text/{file_id} # Serve extracted text
 GET  /api/page-preview/{file_id}/{page} # Page preview
 
-# Unite Integration
+# Export & Integration
+GET  /api/export/excel/{file_id} # Export to Excel format
 POST /api/unite/upload/{file_id} # Queue Unite upload
 GET  /api/unite/status/{file_id} # Check upload status
 
@@ -308,7 +313,7 @@ GET  /api/lifecycle/stats        # Lifecycle analytics
 - **🔍 Extract Page**: Multi-mode extraction with real-time progress
 - **📊 Parse Page**: Parser selection with AI configuration
 - **👀 Preview Page**: Editable data tables with PDF viewer
-- **📋 List Page**: Document management with Unite integration
+- **📋 List Page**: Document management with Excel export and Unite integration
 
 ### Key UI Components
 
@@ -316,7 +321,16 @@ GET  /api/lifecycle/stats        # Lifecycle analytics
 - **DynamicDataEditor**: Schema-aware editor for any parser
 - **PDF Viewer**: Side-by-side with independent scrolling
 - **Status Indicators**: Real-time feedback for all operations
+- **IntensityToggle**: Morphing circle dark/light theme toggle
+- **Excel Export**: One-click download with loading states
+- **Error Handling**: Non-blocking, dismissible error banners
 - **Minimal Design**: Professional, clean interface throughout
+
+### Action Buttons (List Page)
+
+- **↓** (Green) - Download as Excel: Export parsed data to professionally formatted Excel files
+- **↑** (Blue/Status) - Upload to Unite: Send data to Unite ERP system
+- **rm** (Red) - Delete: Remove document and all associated data
 
 ### Responsive Features
 
@@ -324,6 +338,15 @@ GET  /api/lifecycle/stats        # Lifecycle analytics
 - **Keyboard Shortcuts**: Efficient navigation and editing
 - **Accessibility**: ARIA labels and semantic HTML
 - **Performance**: Optimized rendering and memory usage
+- **Error Recovery**: Auto-clearing errors with manual dismiss options
+
+### Intensity Mode (Theme Toggle)
+
+- **Morphing Circle Animation**: Smooth transition between dark/light themes
+- **Minimal Design**: Pure circle with no text, only tooltip
+- **Contextual Help**: Tooltip explains when to use each mode
+- **Persistent Settings**: Theme preference saved across sessions
+- **Performance Optimized**: CSS-only animations with no JavaScript overhead
 
 ## 📊 Parser Development
 
@@ -392,7 +415,39 @@ The bot includes advanced image preprocessing:
 - **Sharpening filters** to enhance text clarity
 - **Error correction** for common OCR mistakes
 
-## 💾 Database Schema
+## � Excel Export Feature
+
+### Overview
+
+The Excel export feature converts parsed data into professionally formatted Excel files with automatic styling, proper data types, and structured layouts.
+
+### Supported Formats
+
+- **DaybookParser**: Specialized formatting with society headers, entries tables, totals sections
+- **AIParser**: Key-value export with structured data presentation
+- **Custom Parsers**: Universal export for any parser type
+
+### Features
+
+- **Professional Styling**: Headers, borders, color-coding, and proper fonts
+- **Data Type Handling**: Numbers, text, dates, arrays, and objects
+- **Auto-Sizing**: Intelligent column width adjustment
+- **Safe Filenames**: Automatic character sanitization for cross-platform compatibility
+- **Error Validation**: Comprehensive checks for data integrity
+
+### Usage
+
+1. Navigate to the **List Page**
+2. Click the green **↓** button next to any saved document
+3. Excel file automatically downloads with format: `{filename}_{parser}_data.xlsx`
+
+### Dependencies
+
+```bash
+pip install openpyxl==3.1.2  # Excel file generation
+```
+
+## �💾 Database Schema
 
 ### Collections
 

@@ -8,6 +8,9 @@ import asyncio
 from datetime import datetime
 from pdf2image import convert_from_path
 from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl.utils.dataframe import dataframe_to_rows
 from app.db.mongo import parsed_collection, documents_collection, extractions_collection, processing_logs_collection, gridfs_bucket, LogManager, DocumentManager
 from app.utils.data_lifecycle import DataLifecycleManager
 
@@ -752,3 +755,347 @@ async def get_unite_status(file_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
+
+@router.get("/api/export/excel/{file_id}")
+async def export_to_excel(file_id: str):
+    """Export parsed data to Excel format"""
+    try:
+        # Validate file_id format
+        if not file_id or len(file_id.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Invalid file ID provided")
+        
+        # Get parsed data from database
+        doc = await parsed_collection.find_one({"_id": file_id})
+        
+        if not doc:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Parsed document with ID '{file_id}' not found. Please ensure the document has been processed and saved."
+            )
+        
+        if not doc.get("saved", False):
+            raise HTTPException(
+                status_code=400, 
+                detail="Document must be saved before exporting. Please save the document first and try again."
+            )
+        
+        # Get document metadata for filename
+        original_filename = doc.get("original_filename", "Unknown.pdf")
+        parser_used = doc.get("parser", "Unknown")
+        tables = doc.get("tables", [])
+        
+        if not tables:
+            raise HTTPException(
+                status_code=400, 
+                detail="No parsed data available for export. Please ensure the document has been parsed successfully."
+            )
+        
+        # Validate that tables contain actual data
+        has_data = False
+        for table in tables:
+            if isinstance(table, dict) and table:
+                has_data = True
+                break
+        
+        if not has_data:
+            raise HTTPException(
+                status_code=400,
+                detail="No valid data found in parsed tables. Please re-parse the document."
+            )
+        
+        # Create Excel workbook
+        try:
+            wb = Workbook()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create Excel workbook: {str(e)}"
+            )
+        
+        # Define styles
+        try:
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            center_alignment = Alignment(horizontal='center', vertical='center')
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create Excel styles: {str(e)}"
+            )
+        
+        if parser_used == "DaybookParser":
+            # Handle Daybook data structure
+            ws = wb.active
+            ws.title = "Daybook Data"
+            
+            # Track current row
+            current_row = 1
+            
+            for table_idx, table in enumerate(tables):
+                # Society header
+                ws.merge_cells(f'A{current_row}:E{current_row}')
+                cell = ws[f'A{current_row}']
+                cell.value = f"Society: {table.get('society_name', 'N/A')}"
+                cell.font = Font(bold=True, size=14)
+                cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+                cell.alignment = center_alignment
+                current_row += 1
+                
+                # Village and Date info
+                ws[f'A{current_row}'] = "Village:"
+                ws[f'B{current_row}'] = table.get('village_name', 'N/A')
+                ws[f'C{current_row}'] = "Date:"
+                ws[f'D{current_row}'] = table.get('date', 'N/A')
+                current_row += 2
+                
+                # Entries table headers
+                headers = ['Account Name', 'Account Number', 'Amount', 'Total Amount', 'Type']
+                for col_idx, header in enumerate(headers, 1):
+                    cell = ws.cell(row=current_row, column=col_idx, value=header)
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.border = border
+                    cell.alignment = center_alignment
+                current_row += 1
+                
+                # Entries data
+                entries = table.get('entries', [])
+                for entry in entries:
+                    ws.cell(row=current_row, column=1, value=entry.get('account_name', '')).border = border
+                    ws.cell(row=current_row, column=2, value=entry.get('account_number', '')).border = border
+                    
+                    amount = entry.get('amount')
+                    if amount is not None:
+                        ws.cell(row=current_row, column=3, value=float(amount)).border = border
+                        ws.cell(row=current_row, column=3, value=float(amount)).number_format = '#,##0.00'
+                    else:
+                        ws.cell(row=current_row, column=3, value="").border = border
+                    
+                    total_amount = entry.get('total_amount')
+                    if total_amount is not None:
+                        ws.cell(row=current_row, column=4, value=float(total_amount)).border = border
+                        ws.cell(row=current_row, column=4, value=float(total_amount)).number_format = '#,##0.00'
+                    else:
+                        ws.cell(row=current_row, column=4, value="").border = border
+                    
+                    # Determine entry type based on available data
+                    entry_type = "Entry"
+                    if entry.get('account_number'):
+                        entry_type = "Account"
+                    elif 'S/O' in entry.get('account_name', ''):
+                        entry_type = "Person"
+                    elif amount is not None and amount > 0:
+                        entry_type = "Transaction"
+                    
+                    ws.cell(row=current_row, column=5, value=entry_type).border = border
+                    current_row += 1
+                
+                # Totals section
+                current_row += 1
+                totals = table.get('totals', {})
+                if totals:
+                    # Totals header
+                    ws.merge_cells(f'A{current_row}:E{current_row}')
+                    cell = ws[f'A{current_row}']
+                    cell.value = "TOTALS"
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
+                    cell.alignment = center_alignment
+                    current_row += 1
+                    
+                    # Total items
+                    for key, value in totals.items():
+                        if value is not None:
+                            ws.cell(row=current_row, column=1, value=key.replace('_', ' ').title())
+                            ws.cell(row=current_row, column=2, value=float(value))
+                            ws.cell(row=current_row, column=2).number_format = '#,##0.00'
+                            current_row += 1
+                
+                # Amount in words
+                amount_in_words = table.get('amount_in_words', '')
+                if amount_in_words:
+                    current_row += 1
+                    ws.merge_cells(f'A{current_row}:E{current_row}')
+                    cell = ws[f'A{current_row}']
+                    cell.value = f"Amount in Words: {amount_in_words}"
+                    cell.font = Font(italic=True)
+                    cell.alignment = Alignment(horizontal='left')
+                
+                current_row += 3  # Add space between tables
+            
+            # Auto-adjust column widths
+            column_widths = {}
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.coordinate and cell.value:
+                        col_letter = cell.column_letter
+                        if col_letter not in column_widths:
+                            column_widths[col_letter] = 0
+                        try:
+                            width = len(str(cell.value))
+                            if width > column_widths[col_letter]:
+                                column_widths[col_letter] = width
+                        except:
+                            pass
+            
+            for col_letter, width in column_widths.items():
+                adjusted_width = min(width + 2, 50)
+                ws.column_dimensions[col_letter].width = adjusted_width
+        
+        else:
+            # Handle other parser types generically
+            ws = wb.active
+            ws.title = f"{parser_used} Data"
+            
+            # Add summary sheet first
+            current_row = 1
+            
+            # Document info header
+            ws.merge_cells(f'A{current_row}:D{current_row}')
+            cell = ws[f'A{current_row}']
+            cell.value = f"Document: {original_filename} (Parser: {parser_used})"
+            cell.font = Font(bold=True, size=14)
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.font = Font(bold=True, size=14, color="FFFFFF")
+            cell.alignment = center_alignment
+            current_row += 2
+            
+            # Process each table
+            for table_idx, table in enumerate(tables):
+                ws.merge_cells(f'A{current_row}:D{current_row}')
+                cell = ws[f'A{current_row}']
+                cell.value = f"Table {table_idx + 1}"
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+                cell.alignment = center_alignment
+                current_row += 1
+                
+                # Convert table data to key-value pairs
+                if isinstance(table, dict):
+                    for key, value in table.items():
+                        ws.cell(row=current_row, column=1, value=str(key).replace('_', ' ').title())
+                        
+                        # Handle different value types
+                        if isinstance(value, (list, dict)):
+                            ws.cell(row=current_row, column=2, value=str(value)[:100] + "..." if len(str(value)) > 100 else str(value))
+                        elif isinstance(value, (int, float)):
+                            ws.cell(row=current_row, column=2, value=value)
+                        else:
+                            ws.cell(row=current_row, column=2, value=str(value) if value is not None else "")
+                        
+                        current_row += 1
+                
+                current_row += 2  # Space between tables
+            
+            # Auto-adjust column widths
+            column_widths = {}
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.coordinate and cell.value:
+                        col_letter = cell.column_letter
+                        if col_letter not in column_widths:
+                            column_widths[col_letter] = 0
+                        try:
+                            width = len(str(cell.value))
+                            if width > column_widths[col_letter]:
+                                column_widths[col_letter] = width
+                        except:
+                            pass
+            
+            for col_letter, width in column_widths.items():
+                adjusted_width = min(width + 2, 80)
+                ws.column_dimensions[col_letter].width = adjusted_width
+        
+        # Save to BytesIO object
+        try:
+            excel_buffer = BytesIO()
+            wb.save(excel_buffer)
+            excel_buffer.seek(0)
+            
+            # Get the content and verify that data was written
+            content = excel_buffer.getvalue()
+            if len(content) == 0:
+                raise Exception("No data was written to Excel file")
+                
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate Excel file: {str(e)}"
+            )
+        
+        # Generate filename safely
+        try:
+            safe_filename = original_filename.replace('.pdf', '').replace(' ', '_').replace('/', '_').replace('\\', '_')
+            # Remove any potentially problematic characters
+            import re
+            safe_filename = re.sub(r'[<>:"|?*]', '_', safe_filename)
+            excel_filename = f"{safe_filename}_{parser_used}_data.xlsx"
+        except Exception as e:
+            # Fallback filename
+            excel_filename = f"document_{parser_used}_data.xlsx"
+        
+        # Return Excel file with comprehensive headers
+        try:
+            # Final validation
+            if len(content) == 0:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Generated Excel file is empty"
+                )
+            
+            return Response(
+                content=content,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={
+                    "Content-Disposition": f"attachment; filename=\"{excel_filename}\"",
+                    "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "Content-Length": str(len(content)),
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to prepare Excel file for download: {str(e)}"
+            )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is (they already have proper status codes and messages)
+        raise
+    except Exception as e:
+        # Log the full error for debugging
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Excel Export Error: {error_trace}")
+        
+        # Categorize errors for better user experience
+        error_message = str(e)
+        if "memory" in error_message.lower() or "memoryerror" in str(type(e)).lower():
+            raise HTTPException(
+                status_code=500, 
+                detail="Document is too large to export. Please contact support."
+            )
+        elif "permission" in error_message.lower() or "access" in error_message.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="Server permission error. Please try again later."
+            )
+        elif "disk" in error_message.lower() or "space" in error_message.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="Server storage issue. Please try again later."
+            )
+        else:
+            # Generic error with sanitized message
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to export Excel file. Please try again or contact support if the problem persists."
+            )
