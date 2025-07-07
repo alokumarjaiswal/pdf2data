@@ -158,7 +158,7 @@ class DaybookParser:
             ),
             
             # Type 1: Business accounts with specific keywords
-            # Example: "OPENING BALANCE 8965.42", "CCB STA LOAN B/F A/C 550340.00"
+            # Example: "OPENING BALANCE 8965.42", "CCB STA LOAN B/F A/C 550340.00", "REPAIR AGRI IMP. 1180.00"
             'type1_business': re.compile(
                 r'^([A-Z][A-Z\s/\.\-]*(?:' + '|'.join(BUSINESS_KEYWORDS) + r')[A-Z\s/\.\-]*)\s+(\d+\.?\d*)$'
             ),
@@ -531,29 +531,43 @@ class DaybookParser:
         """
         Strategy 3: Split line based on amount positions.
         
-        If there are exactly two amounts, split between them assuming
-        the first amount belongs to the left entry and the second to the right.
+        If there are exactly two amounts, try different split points to find
+        the best way to separate two complete entries.
         """
         words = line.split()
         amount_positions = [i for i, word in enumerate(words) 
                           if re.match(r'^\d+\.?\d*$', word)]
         
         if len(amount_positions) == 2:
-            split_point = amount_positions[1]
+            first_amount_pos = amount_positions[0]
+            second_amount_pos = amount_positions[1]
+            
+            # Try splitting after the first amount (most common case)
+            split_point = first_amount_pos + 1
             left_text = ' '.join(words[:split_point])
             right_text = ' '.join(words[split_point:])
             
             entries = []
             left_entry = self._parse_single_entry(left_text)
-            if left_entry:
-                entries.append(left_entry)
-            
             right_entry = self._parse_single_entry(right_text)
-            if right_entry:
-                entries.append(right_entry)
             
-            if entries:
+            if left_entry and right_entry:
+                entries.append(left_entry)
+                entries.append(right_entry)
                 return entries
+            
+            # If that didn't work, try splitting before the second amount
+            # This handles cases where there might be text between entries
+            for split_point in range(first_amount_pos + 1, second_amount_pos):
+                left_text = ' '.join(words[:split_point])
+                right_text = ' '.join(words[split_point:])
+                
+                left_entry = self._parse_single_entry(left_text)
+                right_entry = self._parse_single_entry(right_text)
+                
+                if left_entry and right_entry:
+                    entries = [left_entry, right_entry]
+                    return entries
         
         return None
     
