@@ -48,6 +48,10 @@ export default function PreviewPage() {
   const [showPDF, setShowPDF] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pdf' | 'raw'>('pdf');
+  const [rawSubTab, setRawSubTab] = useState<'extracted' | 'parsed'>('extracted');
+  const [rawData, setRawData] = useState<string | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
 
   // Track changes when editedData is modified
   useEffect(() => {
@@ -57,7 +61,30 @@ export default function PreviewPage() {
     } else {
       setHasChanges(false);
     }
-  }, [editedData, data, isEditMode]);  const handleSave = async () => {
+  }, [editedData, data, isEditMode]);
+
+  // Fetch raw data when tab is switched to 'raw'
+  useEffect(() => {
+    if (activeTab === 'raw' && showPDF && !rawData && !rawLoading && fileId) {
+      const fetchRawData = async () => {
+        setRawLoading(true);
+        try {
+          const response = await fetch(API_ENDPOINTS.extractedText(fileId));
+          if (response.ok) {
+            const text = await response.text();
+            setRawData(text);
+          } else {
+            setRawData('Error loading raw data');
+          }
+        } catch (error) {
+          setRawData('Error loading raw data');
+        } finally {
+          setRawLoading(false);
+        }
+      };
+      fetchRawData();
+    }
+  }, [activeTab, showPDF, rawData, rawLoading, fileId]);  const handleSave = async () => {
     if (!fileId || (!data && !editedData)) return;
     
     setIsSaving(true);
@@ -263,6 +290,11 @@ export default function PreviewPage() {
               // Start PDF loading when toggling to show
               if (!showPDF) {
                 setPdfLoading(true);
+                setActiveTab('pdf'); // Reset to PDF tab when opening
+              } else {
+                // Clear raw data when hiding to save memory
+                setRawData(null);
+                setRawSubTab('extracted'); // Reset to default sub-tab
               }
               setShowPDF(!showPDF);
             }}
@@ -271,7 +303,7 @@ export default function PreviewPage() {
                 ? 'text-grey-200 hover:text-grey-100 bg-grey-800 hover:bg-grey-700' 
                 : 'text-grey-500 hover:text-grey-300 hover:bg-grey-900'
             }`}
-            title={showPDF ? 'Hide PDF' : 'Show PDF side-by-side'}
+            title={showPDF ? 'Hide PDF/Raw Data Viewer' : 'Show PDF/Raw Data Viewer'}
           >
             <svg 
               className={`w-4 h-4 transition-transform duration-200 ${showPDF ? 'rotate-180' : ''}`}
@@ -349,15 +381,6 @@ export default function PreviewPage() {
               >
                 cancel
               </button>
-              {/* View Raw Data Link */}
-              <a
-                href={API_ENDPOINTS.extractedText(data.file_id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-grey-400 hover:text-grey-200 font-mono text-xs transition-colors duration-200"
-              >
-                view raw data →
-              </a>
             </>
           ) : (
             <>
@@ -383,16 +406,6 @@ export default function PreviewPage() {
                   {isSaving ? 'saving...' : 'save'}
                 </button>
               )}
-              
-              {/* Raw JSON Link - only show when not in edit mode */}
-              <a
-                href={API_ENDPOINTS.dataWithPretty(data.file_id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors duration-200"
-              >
-                view raw json →
-              </a>
             </>
           )}
         </div>
@@ -439,26 +452,136 @@ export default function PreviewPage() {
             </div>
           </div>
 
-          {/* PDF Viewer - Scrollable Container */}
+          {/* PDF/Raw Data Viewer with Tabs - Scrollable Container */}
           <div className="flex-1 min-w-0 transition-all duration-300 py-6">
-            <div className="h-full border border-grey-800 rounded-lg overflow-hidden bg-grey-950 relative">
-              {/* PDF Loading Overlay */}
-              {pdfLoading && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
-                  <div className="text-center">
-                    <div className="animate-spin w-8 h-8 border-2 border-grey-500 border-t-grey-200 rounded-full mx-auto mb-3"></div>
-                    <div className="text-grey-300 font-mono text-sm mb-1">Loading PDF...</div>
-                    <div className="text-grey-500 font-mono text-xs">Large files may take a moment</div>
+            <div className="h-full border border-grey-800 rounded-lg overflow-hidden bg-grey-950 relative flex flex-col">
+              {/* Tab Header */}
+              <div className="flex border-b border-grey-800 bg-grey-900">
+                <button
+                  onClick={() => setActiveTab('pdf')}
+                  className={`px-4 py-2 text-xs font-mono transition-colors duration-200 ${
+                    activeTab === 'pdf'
+                      ? 'text-grey-200 bg-grey-950 border-b-2 border-grey-200'
+                      : 'text-grey-500 hover:text-grey-300'
+                  }`}
+                >
+                  PDF
+                </button>
+                <button
+                  onClick={() => setActiveTab('raw')}
+                  className={`px-4 py-2 text-xs font-mono transition-colors duration-200 ${
+                    activeTab === 'raw'
+                      ? 'text-grey-200 bg-grey-950 border-b-2 border-grey-200'
+                      : 'text-grey-500 hover:text-grey-300'
+                  }`}
+                >
+                  Raw Data
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 relative">
+                {activeTab === 'pdf' ? (
+                  <>
+                    {/* PDF Loading Overlay */}
+                    {pdfLoading && (
+                      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
+                        <div className="text-center">
+                          <div className="animate-spin w-8 h-8 border-2 border-grey-500 border-t-grey-200 rounded-full mx-auto mb-3"></div>
+                          <div className="text-grey-300 font-mono text-sm mb-1">Loading PDF...</div>
+                          <div className="text-grey-500 font-mono text-xs">Large files may take a moment</div>
+                        </div>
+                      </div>
+                    )}
+                    <iframe
+                      src={API_ENDPOINTS.file(data.file_id)}
+                      className="w-full h-full border-0"
+                      title="Original PDF"
+                      onLoad={() => setPdfLoading(false)}
+                      onError={() => setPdfLoading(false)}
+                    />
+                  </>
+                ) : (
+                  /* Raw Data Tab */
+                  <div className="h-full flex flex-col bg-black relative">
+                    {/* Raw Data Sub-tabs */}
+                    <div className="flex border-b border-grey-800 bg-grey-900">
+                      <button
+                        onClick={() => setRawSubTab('extracted')}
+                        className={`px-3 py-2 text-xs font-mono transition-colors duration-200 ${
+                          rawSubTab === 'extracted'
+                            ? 'text-grey-200 bg-black border-b-2 border-grey-400'
+                            : 'text-grey-500 hover:text-grey-300'
+                        }`}
+                      >
+                        Extracted Text
+                      </button>
+                      <button
+                        onClick={() => setRawSubTab('parsed')}
+                        className={`px-3 py-2 text-xs font-mono transition-colors duration-200 ${
+                          rawSubTab === 'parsed'
+                            ? 'text-grey-200 bg-black border-b-2 border-grey-400'
+                            : 'text-grey-500 hover:text-grey-300'
+                        }`}
+                      >
+                        Parsed JSON
+                      </button>
+                    </div>
+
+                    {/* Raw Data Sub-tab Content */}
+                    <div className="absolute inset-0 top-10 p-4">
+                      {rawLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="animate-spin w-6 h-6 border border-grey-500 border-t-grey-200 rounded-full mx-auto mb-2"></div>
+                            <div className="text-grey-400 font-mono text-xs">Loading raw data...</div>
+                          </div>
+                        </div>
+                      ) : rawSubTab === 'extracted' ? (
+                        /* Extracted Text Content */
+                        <div className="h-full flex flex-col">
+                          <div className="flex justify-between items-center mb-3 flex-shrink-0">
+                            <h3 className="text-sm font-medium text-grey-200 shiny-text">Extracted Text</h3>
+                            <a
+                              href={API_ENDPOINTS.extractedText(data.file_id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors"
+                            >
+                              open in new tab →
+                            </a>
+                          </div>
+                          <div className="bg-grey-950 border border-grey-800 rounded p-4 flex-1 overflow-auto custom-scrollbar">
+                            <pre className="text-xs text-grey-300 font-mono whitespace-pre-wrap">
+                              {rawData || 'No extracted text available'}
+                            </pre>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Parsed JSON Content */
+                        <div className="h-full flex flex-col">
+                          <div className="flex justify-between items-center mb-3 flex-shrink-0">
+                            <h3 className="text-sm font-medium text-grey-200 shiny-text">Parsed JSON</h3>
+                            <a
+                              href={API_ENDPOINTS.dataWithPretty(data.file_id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-grey-500 hover:text-grey-300 font-mono text-xs transition-colors"
+                            >
+                              open in new tab →
+                            </a>
+                          </div>
+                          <div className="bg-grey-950 border border-grey-800 rounded p-4 flex-1 overflow-auto custom-scrollbar">
+                            <pre className="text-xs text-grey-300 font-mono">
+                              {JSON.stringify(displayData, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-              <iframe
-                src={API_ENDPOINTS.file(data.file_id)}
-                className="w-full h-full border-0"
-                title="Original PDF"
-                onLoad={() => setPdfLoading(false)}
-                onError={() => setPdfLoading(false)}
-              />
+                )}
+              </div>
             </div>
           </div>
         </div>

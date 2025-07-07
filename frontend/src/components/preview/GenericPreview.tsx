@@ -80,7 +80,19 @@ export default function GenericPreview({ data, originalFilename, fileId }: Previ
             data[field] && (
               <div key={field} className="flex">
                 <span className="text-grey-500 w-32">{field}:</span>
-                <span className="text-grey-300">{data[field]}</span>
+                <span className="text-grey-300">
+                  {field === 'uploaded_at' ? 
+                    new Date(data[field]).toLocaleString('en-US', {
+                      month: 'numeric',
+                      day: 'numeric', 
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    }) : 
+                    data[field]
+                  }
+                </span>
               </div>
             )
           ))}

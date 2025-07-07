@@ -15,7 +15,7 @@ A comprehensive PDF extraction, parsing, and ERP integration system with a moder
 - **📊 Structured Data Parsing** - Extensible parser system (DaybookParser, AI Parser, etc.)
 - **⚡ Real-Time Processing** - Streaming extraction with live progress updates
 - **📝 Full CRUD Editing** - Schema-aware, minimal UI table editor for parsed data
-- **🔄 Side-by-Side PDF Viewer** - Independent scrolling, responsive layout
+- **🔄 Tabbed PDF Viewer** - PDF view and raw data tabs with independent scrolling
 - **🗃️ Hybrid Storage Strategy** - MongoDB + filesystem caching for performance
 - **📊 Excel Export** - Professional formatted Excel files from parsed data
 
@@ -208,7 +208,7 @@ cd frontend && npm run dev
 - **Error Handling**: Comprehensive logging and recovery
 
 ### 4. Preview & Edit Phase
-- **Side-by-Side View**: PDF viewer + data table
+- **Side-by-Side View**: Tabbed PDF viewer with raw data access
 - **Full CRUD**: Add/edit/delete tables and rows
 - **Schema-Aware**: Dynamic field rendering for any parser
 - **Auto-Save**: Changes tracked with explicit save controls
@@ -312,19 +312,41 @@ GET  /api/lifecycle/stats        # Lifecycle analytics
 - **📤 Upload Page**: Modern drag & drop interface with validation
 - **🔍 Extract Page**: Multi-mode extraction with real-time progress
 - **📊 Parse Page**: Parser selection with AI configuration
-- **👀 Preview Page**: Editable data tables with PDF viewer
+- **👀 Preview Page**: Editable data tables with tabbed PDF/raw data viewer
 - **📋 List Page**: Document management with Excel export and Unite integration
 
 ### Key UI Components
 
 - **EditableDataEditor**: Full CRUD for DaybookParser data
 - **DynamicDataEditor**: Schema-aware editor for any parser
-- **PDF Viewer**: Side-by-side with independent scrolling
+- **Tabbed PDF Viewer**: PDF view and raw data tabs with sub-tabs for extracted text and parsed JSON
+- **Independent Scrolling**: Each tab and sub-tab maintains its own scroll position
 - **Status Indicators**: Real-time feedback for all operations
 - **IntensityToggle**: Morphing circle dark/light theme toggle
 - **Excel Export**: One-click download with loading states
 - **Error Handling**: Non-blocking, dismissible error banners
 - **Minimal Design**: Professional, clean interface throughout
+
+### PDF Viewer Features
+
+#### Tabbed Interface
+- **PDF Tab**: Display original PDF with full zoom and scroll controls
+- **Raw Data Tab**: Access to extracted and parsed data with sub-tabs:
+  - **Extracted Text**: Raw text content from PDF extraction process
+  - **Parsed JSON**: Structured data output from selected parser
+
+#### Navigation & UX
+- **Toggle Button**: Arrow icon in title bar to show/hide PDF viewer
+- **Memory Management**: Raw data loaded only when needed and cleared on close
+- **External Links**: "Open in new tab" options for full-screen viewing
+- **Responsive Layout**: Side-by-side on desktop, full-width on mobile
+- **Loading States**: Visual feedback during PDF and data loading
+
+#### Technical Features
+- **Lazy Loading**: Raw data fetched only when Raw Data tab is accessed
+- **Caching**: Extracted text cached during session for performance
+- **Scrollable Content**: Custom scrollbars for large content areas
+- **Error Handling**: Graceful fallbacks for failed PDF or data loading
 
 ### Action Buttons (List Page)
 
