@@ -208,7 +208,8 @@ cd frontend && npm run dev
 - **Error Handling**: Comprehensive logging and recovery
 
 ### 4. Preview & Edit Phase
-- **Side-by-Side View**: Tabbed PDF viewer with raw data access
+- **Tabbed PDF Viewer**: Toggle-able panel with PDF and Raw Data tabs
+- **Raw Data Access**: Sub-tabs for Extracted Text and Parsed JSON
 - **Full CRUD**: Add/edit/delete tables and rows
 - **Schema-Aware**: Dynamic field rendering for any parser
 - **Auto-Save**: Changes tracked with explicit save controls
@@ -336,11 +337,12 @@ GET  /api/lifecycle/stats        # Lifecycle analytics
   - **Parsed JSON**: Structured data output from selected parser
 
 #### Navigation & UX
-- **Toggle Button**: Arrow icon in title bar to show/hide PDF viewer
-- **Memory Management**: Raw data loaded only when needed and cleared on close
-- **External Links**: "Open in new tab" options for full-screen viewing
+- **Toggle Button**: Arrow icon in title bar to show/hide tabbed PDF viewer panel
+- **Tab Navigation**: Switch between PDF and Raw Data tabs with persistent state
+- **Memory Management**: Raw data loaded only when Raw Data tab is accessed and cleared on panel close
+- **External Links**: "Open in new tab" options for full-screen viewing of PDFs and raw data
 - **Responsive Layout**: Side-by-side on desktop, full-width on mobile
-- **Loading States**: Visual feedback during PDF and data loading
+- **Loading States**: Visual feedback during PDF loading and data fetching
 
 #### Technical Features
 - **Lazy Loading**: Raw data fetched only when Raw Data tab is accessed
