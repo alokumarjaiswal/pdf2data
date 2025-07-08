@@ -3,25 +3,9 @@ from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
 import time
 import re
-import os
-from dotenv import load_dotenv
+from config import CONFIG
+from tasks import perform_post_login_tasks
 
-# Load environment variables from parent directory
-load_dotenv(dotenv_path="../.env")
-
-# 🔐 Credentials from environment
-USERNAME = os.getenv('UNITE_USERNAME')
-PASSWORD = os.getenv('UNITE_PASSWORD')
-BASE_URL = os.getenv('UNITE_BASE_URL', 'https://pn.uniteerp.in/')
-MAX_ATTEMPTS = int(os.getenv('UNITE_MAX_ATTEMPTS', '3'))
-
-# Validate that required credentials are present
-if not USERNAME or not PASSWORD:
-    raise ValueError("Missing required environment variables: UNITE_USERNAME and/or UNITE_PASSWORD")
-
-print(f"🔐 Loaded credentials for user: {USERNAME[:8]}***")
-
-# 🎨 Image Preprocessing
 def preprocess_captcha(img):
     img = img.convert("L")
     img = img.resize((img.width * 2, img.height * 2))
@@ -30,7 +14,6 @@ def preprocess_captcha(img):
     img = img.point(lambda x: 0 if x < 140 else 255, '1')
     return img
 
-# 🔡 Fix common OCR mistakes
 def fix_common_ocr_errors(text):
     corrections = {
         'l': '1', 'I': '1', '|': '1',
@@ -43,11 +26,9 @@ def fix_common_ocr_errors(text):
     cleaned = re.sub(r'[^a-zA-Z0-9]', '', text)
     return ''.join(corrections.get(c, c) for c in cleaned).lower()
 
-# ✅ Simple validity check
 def is_valid_captcha(text):
     return text and len(text) == 6 and any(c.isalnum() for c in text)
 
-# 🔍 Extract CAPTCHA from screenshot
 def extract_captcha_text(page, save_path="captcha.png"):
     page.screenshot(path="full_screenshot.png")
     box = page.locator("#imgcapt").bounding_box()
@@ -70,32 +51,37 @@ def extract_captcha_text(page, save_path="captcha.png"):
     print(f"🧠 OCR: '{raw}' → fixed: '{fixed}'")
     return fixed
 
-# 🧪 Attempt to log in
 def try_login(page, captcha_text):
-    page.fill('#UserName', USERNAME)
-    page.fill('#Password', PASSWORD)
+    page.fill('#UserName', CONFIG["username"])
+    page.fill('#Password', CONFIG["password"])
     page.select_option('#Language', 'en-GB')
-    page.fill('#LoginDataTime', time.strftime("%Y-%m-%d"))
+    page.fill('#LoginDataTime', CONFIG["login_date"])
     page.fill("#ValidateCaptcha", captcha_text)
     page.click('button:has-text("Login")')
     page.wait_for_timeout(5000)
     return is_logged_in(page)
 
-# ✅ Check if login succeeded
 def is_logged_in(page):
     content = page.content()
     return "Dashboard" in content or "Logout" in content or "Welcome" in content
 
-# 🚀 Main routine
+def safe_click_resend(page):
+    try:
+        page.wait_for_selector("#btnResend", timeout=5000)
+        page.click("#btnResend")
+        time.sleep(2)
+    except Exception as e:
+        print(f"⚠️ Failed to click 'Refresh CAPTCHA' button: {e}")
+
 def run():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=CONFIG["headless"])
         context = browser.new_context()
         page = context.new_page()
 
-        print("🔗 Navigating to login page...")
-        page.goto(BASE_URL)
-        time.sleep(3)
+        print(f"🔗 Navigating to login page: {CONFIG['base_url']}")
+        page.goto(CONFIG["base_url"])
+        page.wait_for_selector("#imgcapt", timeout=10000)
 
         if is_logged_in(page):
             print("✅ Already logged in!")
@@ -104,10 +90,13 @@ def run():
 
         print("🔐 Logging in via CAPTCHA...")
 
-        for attempt in range(1, MAX_ATTEMPTS + 1):
-            print(f"\n🔁 Attempt {attempt} of {MAX_ATTEMPTS}")
-            page.wait_for_selector("#imgcapt")
-            time.sleep(2)
+        for attempt in range(1, CONFIG["max_attempts"] + 1):
+            print(f"\n🔁 Attempt {attempt} of {CONFIG['max_attempts']}")
+            try:
+                page.wait_for_selector("#imgcapt", timeout=5000)
+            except:
+                print("❌ CAPTCHA image not loaded.")
+                continue
 
             captcha_text = extract_captcha_text(page)
             real_captcha = page.get_attribute("#Captcha", "value")
@@ -116,24 +105,24 @@ def run():
 
             if not is_valid_captcha(captcha_text):
                 print("❌ Invalid CAPTCHA. Refreshing...")
-                page.click("#btnResend")
-                time.sleep(2)
+                safe_click_resend(page)
                 continue
 
             if try_login(page, captcha_text):
                 print("✅ Login succeeded!")
+                perform_post_login_tasks(page, CONFIG["voucher_data"])
                 context.close()
                 return
 
             print("⚠️ Login failed. Refreshing CAPTCHA...")
-            page.click("#btnResend")
-            time.sleep(2)
+            safe_click_resend(page)
 
         print("\n🛠 All automated attempts failed.")
         manual_captcha = input("✍️ Enter CAPTCHA manually: ").strip()
         if is_valid_captcha(manual_captcha):
             if try_login(page, manual_captcha):
                 print("✅ Login succeeded via manual CAPTCHA!")
+                perform_post_login_tasks(page, CONFIG["voucher_data"])
             else:
                 print("❌ Manual CAPTCHA failed.")
         else:

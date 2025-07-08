@@ -1,0 +1,83 @@
+2025-07-08 11:37:49,179 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:37:49,357 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:37:49,372 [ERROR] ❌ Failed to click 'FAS': Page.wait_for_selector: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': '#2' is not a valid selector.
+    at query (<anonymous>:4989:41)
+    at <anonymous>:4999:7
+    at SelectorEvaluatorImpl._cached (<anonymous>:4776:20)
+    at SelectorEvaluatorImpl._queryCSS (<anonymous>:4986:17)
+    at SelectorEvaluatorImpl._querySimple (<anonymous>:4866:19)
+    at <anonymous>:4814:29
+    at SelectorEvaluatorImpl._cached (<anonymous>:4776:20)
+    at SelectorEvaluatorImpl.query (<anonymous>:4807:19)
+    at Object.query (<anonymous>:5021:44)
+    at <anonymous>:4979:21
+Call log:
+  - waiting for locator("#2") to be visible
+
+2025-07-08 11:47:21,933 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:47:22,118 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:47:22,318 [ERROR] ❌ Failed to click 'FAS': Locator.click: Error: strict mode violation: locator("[id=\"2\"]") resolved to 2 elements:
+    1) <li id="2" accesskey="B">…</li> aka locator("#moduleList").get_by_role("listitem").filter(has_text="FAS")
+    2) <a id="2" href="#" name="FAS">…</a> aka get_by_role("link", name="Image FAS")
+
+Call log:
+  - waiting for locator("[id=\"2\"]")
+
+2025-07-08 11:49:39,957 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:49:40,159 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:49:40,931 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 11:49:43,700 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 11:49:46,028 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 11:49:56,056 [ERROR] ❌ Failed while filling voucher form: Page.wait_for_selector: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("#txtledger") to be visible
+    24 × locator resolved to hidden <select id="txtledger" onchange="selectAccount(this)" class="form-control input-xs item">…</select>
+
+2025-07-08 11:53:18,937 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:53:19,157 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:53:19,936 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 11:53:22,565 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 11:53:24,531 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 11:53:24,616 [INFO] ✅ Ledger selected (forced hidden select): 133779221311
+2025-07-08 11:53:24,692 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 11:53:24,765 [INFO] 💰 Amount: 1500.00
+2025-07-08 11:53:31,262 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 11:55:48,570 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:55:48,766 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:55:52,846 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 11:55:58,415 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 11:56:00,636 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 11:56:30,655 [ERROR] ❌ Failed while filling voucher form: Page.select_option: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("#txtledger")
+
+2025-07-08 11:57:01,640 [INFO] 🛠 Starting post-login actions...
+2025-07-08 11:57:01,846 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 11:57:03,167 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 11:57:05,800 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 11:57:08,040 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 11:57:08,110 [INFO] ✅ Ledger selected (forced hidden select): 133779221311
+2025-07-08 11:57:08,159 [INFO] 📦 Ledger selected value: 133779221311
+2025-07-08 11:57:08,227 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 11:57:08,309 [INFO] 💰 Amount: 1500.00
+2025-07-08 11:57:15,987 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 12:00:29,300 [INFO] 🛠 Starting post-login actions...
+2025-07-08 12:00:29,501 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 12:00:30,848 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 12:00:33,667 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 12:00:35,893 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 12:00:35,973 [INFO] ✅ Ledger selected (forced hidden select): 133779221311
+2025-07-08 12:00:36,055 [INFO] 📦 Ledger selected value: 133779221311
+2025-07-08 12:00:36,056 [INFO] 📦 Ledger selected label: The Khanna Marketing Society L - 208001000000007 / Sundry Creditors(Annexure-IV)
+2025-07-08 12:00:36,143 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 12:00:36,206 [INFO] 💰 Amount: 1500.00
+2025-07-08 12:00:45,531 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 12:09:43,976 [INFO] 🛠 Starting post-login actions...
+2025-07-08 12:09:44,172 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 12:09:45,403 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 12:09:48,037 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 12:09:50,311 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 12:09:50,581 [INFO] 📦 Ledger selected via name fallback: THE KHANNA MARKETING SOCIETY LTD
+2025-07-08 12:09:50,666 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 12:09:50,764 [INFO] 💰 Amount: 1500.00
+2025-07-08 12:09:57,309 [INFO] ✅ Voucher submitted successfully.
