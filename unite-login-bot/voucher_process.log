@@ -81,3 +81,22 @@ Call log:
 2025-07-08 12:09:50,666 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
 2025-07-08 12:09:50,764 [INFO] 💰 Amount: 1500.00
 2025-07-08 12:09:57,309 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 15:29:49,065 [INFO] 🛠 Starting post-login actions...
+2025-07-08 15:29:49,242 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 15:29:50,666 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 15:29:53,615 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 15:29:55,930 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 15:29:56,126 [INFO] 📦 Ledger selected via name fallback: THE KHANNA MARKETING SOCIETY LTD
+2025-07-08 15:29:56,234 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 15:29:56,305 [INFO] 💰 Amount: 1500.00
+2025-07-08 15:29:57,687 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 17:06:56,470 [INFO] 🛠 Starting post-login actions...
+2025-07-08 17:06:56,688 [INFO] ✅ Clicked OK on confirmation popup.
+2025-07-08 17:06:58,017 [INFO] ✅ Clicked 'FAS' section.
+2025-07-08 17:07:01,203 [INFO] ✅ Selected 'Cash Payment' from dropdown.
+2025-07-08 17:07:03,561 [INFO] ✅ Clicked '+' to add voucher.
+2025-07-08 17:07:03,808 [INFO] 📦 Ledger selected via name fallback: THE KHANNA MARKETING SOCIETY LTD
+2025-07-08 17:07:03,900 [INFO] ✍️ Narration: Auto-entry: April 1st Expenses
+2025-07-08 17:07:03,992 [INFO] 💰 Amount: 1500.00
+2025-07-08 17:07:10,232 [INFO] ✅ Voucher submitted successfully.
+2025-07-08 17:07:10,241 [INFO] ⏳ Waiting 10 seconds to view results...

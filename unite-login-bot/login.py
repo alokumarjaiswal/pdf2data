@@ -111,6 +111,8 @@ def run():
             if try_login(page, captcha_text):
                 print("✅ Login succeeded!")
                 perform_post_login_tasks(page, CONFIG["voucher_data"])
+                print("⏳ Keeping browser open for 5 more seconds...")
+                page.wait_for_timeout(5000)  # Additional 5 seconds after tasks
                 context.close()
                 return
 
@@ -123,6 +125,8 @@ def run():
             if try_login(page, manual_captcha):
                 print("✅ Login succeeded via manual CAPTCHA!")
                 perform_post_login_tasks(page, CONFIG["voucher_data"])
+                print("⏳ Keeping browser open for 5 more seconds...")
+                page.wait_for_timeout(5000)  # Additional 5 seconds after tasks
             else:
                 print("❌ Manual CAPTCHA failed.")
         else:

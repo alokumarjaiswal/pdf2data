@@ -93,5 +93,10 @@ def perform_post_login_tasks(page: Page, voucher_data: dict):
     try:
         page.click('#btnTransferconfirmview')
         logging.info("✅ Voucher submitted successfully.")
+        
+        # Wait to see the results before closing browser
+        logging.info("⏳ Waiting 10 seconds to view results...")
+        page.wait_for_timeout(10000)  # 10 seconds delay
+        
     except Exception as e:
         logging.error("❌ Failed to click Save button: %s", e)
